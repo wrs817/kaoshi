@@ -12297,13 +12297,12 @@ function startQuiz() {
   const selectedMultiples = multipleChoiceQuestions.slice(0, 20);
   const selectedTrueFalse = trueFalseQuestions.slice(0, 20);
 
-  // Combine and shuffle the final test questions
+  // Combine the final test questions
   testQuestions = [
     ...selectedSingles,
     ...selectedMultiples,
     ...selectedTrueFalse,
   ];
-  shuffleArray(testQuestions);
 
   // Calculate max possible score (multiple-choice = 2 points, others = 1 point)
   maxPossibleScore = (selectedSingles.length + selectedTrueFalse.length) + (selectedMultiples.length * 2);
