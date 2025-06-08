@@ -12225,17 +12225,75 @@ const questionBank = [
   },
 ];
 
-console.log("题库已加载，包含", questionBank.length, "道题目。");
+// --- Full Question Bank ---
+// This is the source of truth for the questions.
+// It will be used to populate localStorage the first time the app runs.
+
+
+// --- Local Storage Functions ---
+
+const STORAGE_KEY = 'quizAppQuestionBank';
+
+/**
+ * Initializes the application, populating localStorage if needed.
+ */
+function initApp() {
+    seedLocalStorageIfNeeded();
+}
+
+/**
+ * Populates localStorage with the full question bank if it doesn't exist.
+ */
+function seedLocalStorageIfNeeded() {
+    if (!localStorage.getItem(STORAGE_KEY)) {
+        console.log("Local storage is empty. Seeding questions...");
+        const questionsWithStats = questionBank.map((question, index) => ({
+            ...question,
+            id: `q_${index}`, // Add a unique ID
+            practiced_count: 0,
+            wrong_count: 0,
+        }));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(questionsWithStats));
+        console.log("Seeding complete.");
+    } else {
+        console.log(`Local storage already contains ${questionBank.length} questions.`);
+    }
+}
+
+/**
+ * Retrieves all questions from localStorage.
+ * @returns {Array} An array of question objects.
+ */
+function getQuestionsFromStorage() {
+    const questionsJSON = localStorage.getItem(STORAGE_KEY);
+    return questionsJSON ? JSON.parse(questionsJSON) : [];
+}
+
+/**
+ * Saves the entire question bank back to localStorage.
+ * @param {Array} questions The array of question objects to save.
+ */
+function saveQuestionsToStorage(questions) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(questions));
+}
+
 
 // --- DOM Element Retrieval ---
 const startScreen = document.getElementById("start-screen");
 const questionScreen = document.getElementById("question-screen");
 const resultsScreen = document.getElementById("results-screen");
+const cuotiScreen = document.getElementById("cuoti-screen");
 
 const startBtn = document.getElementById("start-btn");
 const submitBtn = document.getElementById("submit-btn");
 const nextBtn = document.getElementById("next-btn");
 const restartBtn = document.getElementById("restart-btn");
+const resetStorageBtn = document.getElementById("reset-storage-btn");
+const homeFromQuestionBtn = document.getElementById("home-from-question-btn");
+
+const cuotiBtn = document.getElementById("cuoti-btn");
+const cuotiResultsBtn = document.getElementById("cuoti-results-btn");
+const backToStartBtn = document.getElementById("back-to-start-btn");
 
 const progressText = document.getElementById("progress-text");
 const scoreText = document.getElementById("score-text");
@@ -12245,254 +12303,515 @@ const questionTypeBadge = document.getElementById("question-type-badge");
 const questionText = document.getElementById("question-text");
 const optionsContainer = document.getElementById("options-container");
 const feedbackContainer = document.getElementById("feedback-container");
+const cuotiList = document.getElementById("cuoti-list");
 
 const finalScoreEl = document.getElementById("final-score");
 const resultMessageEl = document.getElementById("result-message");
 
-// --- Variable Definitions ---
+// Modal and Notification Elements
+const customModal = document.getElementById('custom-modal');
+const modalTitle = document.getElementById('modal-title');
+const modalText = document.getElementById('modal-text');
+const modalConfirmBtn = document.getElementById('modal-confirm-btn');
+const modalCancelBtn = document.getElementById('modal-cancel-btn');
+const notification = document.getElementById('notification');
+
+// --- State Variables ---
 let testQuestions = [];
 let currentQuestionIndex = 0;
 let score = 0;
 const TOTAL_QUESTIONS = 80;
 let maxPossibleScore = 0;
+let confirmCallback = null;
 
-// --- Utility Functions ---
+// --- Modal and Notification Functions ---
 
 /**
- * Shuffles an array in place using the Fisher-Yates algorithm.
- * @param {Array} array The array to shuffle.
+ * Shows the custom modal with a specific message and confirmation callback.
+ * @param {string} title - The title for the modal.
+ * @param {string} text - The message text for the modal.
+ * @param {function} onConfirm - The function to call when the confirm button is clicked.
  */
+function showModal(title, text, onConfirm) {
+    modalTitle.textContent = title;
+    modalText.textContent = text;
+    confirmCallback = onConfirm;
+    customModal.classList.remove('hidden');
+}
+
+/**
+ * Hides the custom modal.
+ */
+function hideModal() {
+    customModal.classList.add('hidden');
+    confirmCallback = null;
+}
+
+/**
+ * Shows a toaster notification message that disappears after 3 seconds.
+ * @param {string} message - The message to display.
+ * @param {boolean} isError - If true, displays a red error notification.
+ */
+function showNotification(message, isError = false) {
+    // Get references to notification elements
+    const notificationText = document.getElementById('notification-text');
+    const notificationIcon = document.getElementById('notification-icon');
+    
+    // Set message content
+    notificationText.textContent = message;
+    
+    // Set icon based on message type
+    notificationIcon.textContent = isError ? '❌' : '✅';
+    
+    // Set notification styling
+    notification.className = `fixed top-5 right-5 text-white py-3 px-6 rounded-lg shadow-xl z-50 transition-all duration-300 transform 
+        ${isError ? 'bg-red-500' : 'bg-green-500'} flex items-center space-x-2`;
+    
+    // Add subtle animation effects
+    notification.style.opacity = '0';
+    notification.classList.remove('hidden', 'translate-x-full');
+    
+    // Fade in animation
+    setTimeout(() => {
+        notification.style.opacity = '1';
+    }, 10);
+    
+    // Auto-hide after 3 seconds
+    setTimeout(() => {
+        // Fade out animation
+        notification.style.opacity = '0';
+        
+        // Hide after fade out completes
+        setTimeout(() => {
+            notification.classList.add('hidden');
+        }, 300);
+    }, 3000);
+    notification.innerHTML += '<div id="toast-progress" class="absolute bottom-0 left-0 h-1 bg-white bg-opacity-30 transition-all duration-3000 w-full" style="transform-origin: left;"></div>';
+    const progressBar = document.getElementById('toast-progress');
+    
+    // Start depleting the progress bar
+    setTimeout(() => {
+        progressBar.style.transform = 'scaleX(0)';
+    }, 100);
+    
+    // Fade out animation after 2.8 seconds
+    setTimeout(() => {
+        notification.style.opacity = '0';
+    }, 2800);
+    
+    // Hide notification after animations complete (3s)
+    setTimeout(() => {
+        notification.classList.add('hidden', 'translate-x-full');
+        notification.innerHTML = '<span id="notification-icon" class="text-xl">🔔</span><span id="notification-text"></span>';
+    }, 3000);
+}
+
+
+// --- Utility and Core Functions ---
+
 function shuffleArray(array) {
-  for (let i = array.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j], array[i]];
-  }
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
 }
 
-// --- Core Quiz Functions ---
-
 /**
- * Starts the quiz by selecting questions and displaying the first one.
+ * Calculates a priority score for each question based on practice count and error count.
+ * Higher score = higher priority to be selected
+ * Questions that haven't been practiced get highest priority
+ * Among practiced questions, ones with errors get higher priority
+ * 
+ * @param {Object} question - The question object
+ * @returns {number} - Priority score
  */
+function calculateQuestionPriority(question) {
+    // If the question has never been practiced, it gets highest priority
+    if (!question.practiced_count || question.practiced_count === 0) {
+        return 1000;
+    }
+    
+    // If the question has been answered incorrectly, give it higher priority
+    // More wrong answers = higher priority
+    if (question.wrong_count && question.wrong_count > 0) {
+        return 500 + (question.wrong_count * 100 / question.practiced_count);
+    }
+    
+    // For questions that have been practiced but never wrong
+    // We want to prioritize less frequently practiced questions
+    return 100 / question.practiced_count;
+}
+
 function startQuiz() {
-  // Filter questions by type
-  const singleChoiceQuestions = questionBank.filter((q) => q.type === "single");
-  const multipleChoiceQuestions = questionBank.filter(
-    (q) => q.type === "multiple"
-  );
-  const trueFalseQuestions = questionBank.filter(
-    (q) => q.type === "true-false"
-  );
-  console.log(`单选题数量: ${singleChoiceQuestions.length}`);
-  console.log(`多选题数量: ${multipleChoiceQuestions.length}`);
-  console.log(`判断题数量: ${trueFalseQuestions.length}`);
+    let allQuestions = getQuestionsFromStorage();
+    const singleChoiceQuestions = allQuestions.filter((q) => q.type === "single");
+    const multipleChoiceQuestions = allQuestions.filter((q) => q.type === "multiple");
+    const trueFalseQuestions = allQuestions.filter((q) => q.type === "true-false");
 
-  // Shuffle each category
-  shuffleArray(singleChoiceQuestions);
-  shuffleArray(multipleChoiceQuestions);
-  shuffleArray(trueFalseQuestions);
+    // Sort each question type by priority
+    singleChoiceQuestions.sort((a, b) => calculateQuestionPriority(b) - calculateQuestionPriority(a));
+    multipleChoiceQuestions.sort((a, b) => calculateQuestionPriority(b) - calculateQuestionPriority(a));
+    trueFalseQuestions.sort((a, b) => calculateQuestionPriority(b) - calculateQuestionPriority(a));
 
-  // Select the required number of questions from each category
-  const selectedSingles = singleChoiceQuestions.slice(0, 40);
-  const selectedMultiples = multipleChoiceQuestions.slice(0, 20);
-  const selectedTrueFalse = trueFalseQuestions.slice(0, 20);
 
-  // Combine the final test questions
-  testQuestions = [
-    ...selectedSingles,
-    ...selectedMultiples,
-    ...selectedTrueFalse,
-  ];
+    // Take the top priority questions from each type
+    const selectedSingles = singleChoiceQuestions.slice(0, 40);
+    const selectedMultiples = multipleChoiceQuestions.slice(0, 20);
+    const selectedTrueFalse = trueFalseQuestions.slice(0, 20);
+    
+    testQuestions = [...selectedSingles, ...selectedMultiples, ...selectedTrueFalse].slice(0, TOTAL_QUESTIONS);
 
-  // Calculate max possible score (multiple-choice = 2 points, others = 1 point)
-  maxPossibleScore = (selectedSingles.length + selectedTrueFalse.length) + (selectedMultiples.length * 2);
-
-  // Reset state
-  currentQuestionIndex = 0;
-  score = 0;
-
-  // Transition to the question screen
-  startScreen.classList.add("hidden");
-  questionScreen.classList.remove("hidden");
-  resultsScreen.classList.add("hidden");
-
-  displayQuestion();
-}
-
-/**
- * Displays the current question and its options.
- */
-function displayQuestion() {
-  // Reset UI elements
-  feedbackContainer.classList.add("hidden");
-  submitBtn.classList.remove("hidden");
-  nextBtn.classList.add("hidden");
-  submitBtn.disabled = false;
-
-  const currentQuestion = testQuestions[currentQuestionIndex];
-
-  console.log(`显示第 ${currentQuestionIndex + 1} 题:`, currentQuestion);
-
-  // Update progress
-  progressText.textContent = `题目 ${
-    currentQuestionIndex + 1
-  } / ${TOTAL_QUESTIONS}`;
-  progressBar.style.width = `${
-    ((currentQuestionIndex + 1) / TOTAL_QUESTIONS) * 80
-  }%`;
-  scoreText.textContent = `得分: ${score} / ${maxPossibleScore}`;
-
-  // Update question text and type badge
-  questionText.textContent = currentQuestion.question;
-  switch (currentQuestion.type) {
-    case "single":
-      questionTypeBadge.textContent = "单选题";
-      break;
-    case "multiple":
-      questionTypeBadge.textContent = "多选题";
-      break;
-    case "true-false":
-      questionTypeBadge.textContent = "判断题";
-      break;
-  }
-
-  // Clear previous options
-  optionsContainer.innerHTML = "";
-
-  // Create and append new options
-  for (const key in currentQuestion.options) {
-    const optionId = `option_${key}`;
-    const optionType =
-      currentQuestion.type === "multiple" ? "checkbox" : "radio";
-
-    const optionElement = document.createElement("label");
-    optionElement.htmlFor = optionId;
-    optionElement.className =
-      "flex items-center p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50";
-
-    optionElement.innerHTML = `
-                    <input type="${optionType}" id="${optionId}" name="option" value="${key}" class="form-${optionType} h-5 w-5 text-blue-600 border-gray-300 focus:ring-blue-500">
-                    <span class="ml-3 text-gray-700">${key}. ${currentQuestion.options[key]}</span>
-                `;
-    optionsContainer.appendChild(optionElement);
-  }
-}
-
-/**
- * Checks the submitted answer, provides feedback, and updates the score.
- */
-function checkAnswer() {
-  const currentQuestion = testQuestions[currentQuestionIndex];
-  const inputs = optionsContainer.querySelectorAll("input");
-  let isCorrect = false;
-  let selectedAnswers = [];
-
-  // Get selected answers
-  inputs.forEach((input) => {
-    if (input.checked) {
-      selectedAnswers.push(input.value);
+    if (testQuestions.length < TOTAL_QUESTIONS) {
+        console.warn(`Warning: Not enough questions. Found ${testQuestions.length}.`);
     }
-    input.disabled = true; // Disable all inputs after submission
-  });
 
-  if (selectedAnswers.length === 0) {
-    feedbackContainer.textContent = "请选择一个答案！";
-    feedbackContainer.className =
-      "mt-6 p-4 rounded-lg text-center bg-yellow-100 text-yellow-800";
-    feedbackContainer.classList.remove("hidden");
-    inputs.forEach((input) => (input.disabled = false)); // Re-enable inputs
-    return;
-  }
+    maxPossibleScore = testQuestions.reduce((total, q) => total + (q.type === 'multiple' ? 2 : 1), 0);
+    updatePracticedCounts(testQuestions);
 
-  // Check correctness based on question type
-  if (currentQuestion.type === "multiple") {
-    const correctAnswers = currentQuestion.answer.split("").sort();
-    selectedAnswers.sort();
-    isCorrect =
-      JSON.stringify(correctAnswers) === JSON.stringify(selectedAnswers);
-  } else {
-    // Single choice or True/False
-    isCorrect =
-      selectedAnswers.length === 1 &&
-      selectedAnswers[0] === currentQuestion.answer;
-  }
+    currentQuestionIndex = 0;
+    score = 0;
 
-  // Update score and provide feedback
-  if (isCorrect) {
-    // Award 2 points for multiple-choice questions, 1 point for others
-    if (currentQuestion.type === "multiple") {
-      score += 2;
-      feedbackContainer.textContent = `正确！得分：2分`;
-    } else {
-      score += 1;
-      feedbackContainer.textContent = `正确！得分：1分`;
+    startScreen.classList.add("hidden");
+    questionScreen.classList.remove("hidden");
+    resultsScreen.classList.add("hidden");
+    cuotiScreen.classList.add("hidden");
+    
+    // Show a notification about question prioritization
+    const newQuestions = testQuestions.filter(q => !q.practiced_count || q.practiced_count === 0).length;
+    const wrongQuestions = testQuestions.filter(q => q.wrong_count && q.wrong_count > 0).length;
+    
+    if (newQuestions > 0 || wrongQuestions > 0) {
+        let message = "已优先选择";
+        if (newQuestions > 0) {
+            message += `${newQuestions}道新题目`;
+        }
+        if (newQuestions > 0 && wrongQuestions > 0) {
+            message += "和";
+        }
+        if (wrongQuestions > 0) {
+            message += `${wrongQuestions}道曾答错的题目`;
+        }
+        showNotification(message, false);
     }
-    feedbackContainer.className =
-      "mt-6 p-4 rounded-lg text-center bg-green-100 text-green-800";
-  } else {
-    feedbackContainer.textContent = `错误。正确答案是 ${currentQuestion.answer}`;
-    feedbackContainer.className =
-      "mt-6 p-4 rounded-lg text-center bg-red-100 text-red-800";
-  }
 
-  // Highlight correct/incorrect options
-  inputs.forEach((input) => {
-    const label = input.parentElement;
-    const correctAnswerArray = currentQuestion.answer.split("");
-    if (correctAnswerArray.includes(input.value)) {
-      label.classList.add("correct-answer", "correct-text");
-    } else if (input.checked && !correctAnswerArray.includes(input.value)) {
-      label.classList.add("incorrect-answer", "incorrect-text");
-    }
-  });
-
-  feedbackContainer.classList.remove("hidden");
-  scoreText.textContent = `得分: ${score}`;
-  submitBtn.classList.add("hidden");
-  nextBtn.classList.remove("hidden");
-  submitBtn.disabled = true;
-}
-
-/**
- * Moves to the next question or shows the final results.
- */
-function nextQuestion() {
-  currentQuestionIndex++;
-  if (currentQuestionIndex < TOTAL_QUESTIONS) {
     displayQuestion();
-  } else {
-    showResults();
-  }
 }
 
-/**
- * Displays the final score and a concluding message.
- */
-function showResults() {
-  questionScreen.classList.add("hidden");
-  resultsScreen.classList.remove("hidden");
+function updatePracticedCounts(questionsToUpdate) {
+    let allQuestions = getQuestionsFromStorage();
+    questionsToUpdate.forEach(testQ => {
+        const questionInDb = allQuestions.find(dbQ => dbQ.id === testQ.id);
+        if (questionInDb) {
+            questionInDb.practiced_count = (questionInDb.practiced_count || 0) + 1;
+        }
+    });
+    saveQuestionsToStorage(allQuestions);
+}
 
-  // Calculate percentage score
-  const scorePercentage = (score / maxPossibleScore) * 100;
-  finalScoreEl.textContent = `${score}/${maxPossibleScore}`;
-  
-  let message = "";
-  if (scorePercentage >= 90) {
-    message = "太棒了！老爸真是个天才！";
-  } else if (scorePercentage >= 80) {
-    message = "很不错！老爸表现出色！";
-  } else if (scorePercentage >= 70) {
-    message = "很不错！老爸继续努力！";
-  } else if (scorePercentage >= 50) {
-    message = "还有进步空间，老爸加油！";
-  } else {
-    message = "别灰心，老爸再多练习一下吧！";
-  }
-  resultMessageEl.textContent = message;
+function displayQuestion() {
+    feedbackContainer.classList.add("hidden");
+    submitBtn.classList.remove("hidden");
+    nextBtn.classList.add("hidden");
+    submitBtn.disabled = false;
+
+    if (testQuestions.length === 0 || currentQuestionIndex >= testQuestions.length) {
+        showResults();
+        return;
+    }
+
+    const currentQuestion = testQuestions[currentQuestionIndex];
+    progressText.textContent = `题目 ${currentQuestionIndex + 1} / ${testQuestions.length}`;
+    progressBar.style.width = `${((currentQuestionIndex + 1) / testQuestions.length) * 100}%`;
+
+    console.log(`Displaying question ${currentQuestionIndex + 1}:`, currentQuestion);
+    
+    // Display score and question stats
+    const practicedCount = currentQuestion.practiced_count || 0;
+    const wrongCount = currentQuestion.wrong_count || 0;
+    let statsText = `得分: ${score}`;
+    
+    // Add stats if question has been practiced before
+    if (practicedCount > 0) {
+        const correctRate = Math.round(((practicedCount - wrongCount) / practicedCount) * 100);
+        statsText += ` | 练习: ${practicedCount}次 | 正确率: ${correctRate}%`;
+    }
+    
+    scoreText.textContent = statsText;
+
+    questionText.textContent = currentQuestion.question;
+    
+    // Add class to question type badge based on history
+    let badgeClass = "inline-block text-xs font-semibold mr-2 px-2.5 py-0.5 rounded-full";
+    if (wrongCount > 0) {
+        // Question has been answered incorrectly before
+        badgeClass += " bg-red-100 text-red-800";
+    } else if (practicedCount > 0) {
+        // Question has been practiced but never wrong
+        badgeClass += " bg-green-100 text-green-800";
+    } else {
+        // New question
+        badgeClass += " bg-blue-100 text-blue-800";
+    }
+    
+    questionTypeBadge.className = badgeClass;
+    questionTypeBadge.textContent = {
+        'single': '单选题', 'multiple': '多选题', 'true-false': '判断题'
+    }[currentQuestion.type];
+
+    optionsContainer.innerHTML = "";
+    const optionType = currentQuestion.type === 'multiple' ? 'checkbox' : 'radio';
+    for (const key in currentQuestion.options) {
+        const optionId = `option_${key}`;
+        const optionElement = document.createElement("label");
+        optionElement.htmlFor = optionId;
+        optionElement.className = "flex items-center p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50";
+        optionElement.innerHTML = `
+            <input type="${optionType}" id="${optionId}" name="option" value="${key}" class="form-${optionType} h-5 w-5 text-blue-600 border-gray-300 focus:ring-blue-500">
+            <span class="ml-3 text-gray-700">${key}. ${currentQuestion.options[key]}</span>
+        `;
+        optionsContainer.appendChild(optionElement);
+    }
+}
+
+function checkAnswer() {
+    const currentQuestion = testQuestions[currentQuestionIndex];
+    const inputs = optionsContainer.querySelectorAll("input");
+    let selectedAnswers = [];
+
+    inputs.forEach(input => {
+        if (input.checked) selectedAnswers.push(input.value);
+        input.disabled = true;
+    });
+
+    if (selectedAnswers.length === 0) {
+        feedbackContainer.textContent = "请选择一个答案！";
+        feedbackContainer.className = "mt-6 p-4 rounded-lg text-center bg-yellow-100 text-yellow-800";
+        feedbackContainer.classList.remove("hidden");
+        inputs.forEach(input => input.disabled = false);
+        return;
+    }
+
+    let isCorrect = currentQuestion.type === "multiple"
+        ? JSON.stringify(currentQuestion.answer.split("").sort()) === JSON.stringify(selectedAnswers.sort())
+        : selectedAnswers.length === 1 && selectedAnswers[0] === currentQuestion.answer;
+
+    if (isCorrect) {
+        const points = currentQuestion.type === 'multiple' ? 2 : 1;
+        score += points;
+        feedbackContainer.textContent = `正确！得分：${points}分`;
+        feedbackContainer.className = "mt-6 p-4 rounded-lg text-center bg-green-100 text-green-800";
+        // Track that this question was answered correctly in this session
+        currentQuestion._answeredCorrect = true;
+    } else {
+        feedbackContainer.textContent = `错误。正确答案是 ${currentQuestion.answer}`;
+        feedbackContainer.className = "mt-6 p-4 rounded-lg text-center bg-red-100 text-red-800";
+        updateWrongCount(currentQuestion);
+        // Track that this question was answered incorrectly in this session
+        currentQuestion._answeredCorrect = false;
+    }
+
+    inputs.forEach(input => {
+        const label = input.parentElement;
+        const correctAnswerArray = currentQuestion.answer.split("");
+        if (correctAnswerArray.includes(input.value)) {
+            label.classList.add("correct-answer");
+        } else if (input.checked) {
+            label.classList.add("incorrect-answer");
+        }
+    });
+
+    feedbackContainer.classList.remove("hidden");
+    scoreText.textContent = `得分: ${score}`;
+    submitBtn.classList.add("hidden");
+    nextBtn.classList.remove("hidden");
+    submitBtn.disabled = true;
+}
+
+function updateWrongCount(question) {
+    let allQuestions = getQuestionsFromStorage();
+    const questionInDb = allQuestions.find(dbQ => dbQ.id === question.id);
+    if (questionInDb) {
+        questionInDb.wrong_count = (questionInDb.wrong_count || 0) + 1;
+        saveQuestionsToStorage(allQuestions);
+    }
+}
+
+function nextQuestion() {
+    const previousType = testQuestions[currentQuestionIndex].type;
+    currentQuestionIndex++;
+    
+    if (currentQuestionIndex < testQuestions.length) {
+        // Check if we're transitioning to a new question type
+        const currentType = testQuestions[currentQuestionIndex].type;
+        if (currentType !== previousType) {
+            // Use the toaster notification for section transitions
+            const sectionName = {
+                'single': '单选题',
+                'multiple': '多选题',
+                'true-false': '判断题'
+            }[currentType];
+            
+            showNotification(`进入${sectionName}部分`, false);
+        }
+        
+        displayQuestion();
+    } else {
+        showResults();
+    }
+}
+
+function showResults() {
+    questionScreen.classList.add("hidden");
+    resultsScreen.classList.remove("hidden");
+
+    // Calculate improvements
+    const wrongAnsweredQuestions = testQuestions.filter(q => 
+        q.practiced_count && q.practiced_count > 1 && q.wrong_count > 0);
+    const improvedQuestions = wrongAnsweredQuestions.filter(q => {
+        const previousRate = (q.practiced_count - 1 - q.wrong_count) / (q.practiced_count - 1);
+        const currentRate = (q.practiced_count - q.wrong_count) / q.practiced_count;
+        return currentRate > previousRate;
+    });
+    
+    // Analyze performance by question type
+    const singleChoiceQuestions = testQuestions.filter(q => q.type === "single");
+    const multipleChoiceQuestions = testQuestions.filter(q => q.type === "multiple");
+    const trueFalseQuestions = testQuestions.filter(q => q.type === "true-false");
+    
+    // Count wrong answers by type during this quiz session
+    const wrongSingleCount = singleChoiceQuestions.filter(q => !q._answeredCorrect).length;
+    const wrongMultipleCount = multipleChoiceQuestions.filter(q => !q._answeredCorrect).length;
+    const wrongTrueFalseCount = trueFalseQuestions.filter(q => !q._answeredCorrect).length;
+    
+    // Overall score
+    const scorePercentage = maxPossibleScore > 0 ? (score / maxPossibleScore) * 100 : 0;
+    
+    // Build HTML for the final score with detailed analysis
+    let resultHTML = `<div class="text-5xl font-bold text-blue-500 my-4">${score} / ${maxPossibleScore}</div>`;
+    
+    // Add score breakdown by question type
+    resultHTML += `
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 my-4">
+        <div class="bg-blue-100 text-blue-800 p-3 rounded-lg">
+            <div class="font-bold">单选题</div>
+            <div>${singleChoiceQuestions.length - wrongSingleCount}/${singleChoiceQuestions.length}</div>
+        </div>
+        <div class="bg-green-100 text-green-800 p-3 rounded-lg">
+            <div class="font-bold">多选题</div>
+            <div>${multipleChoiceQuestions.length - wrongMultipleCount}/${multipleChoiceQuestions.length}</div>
+        </div>
+        <div class="bg-purple-100 text-purple-800 p-3 rounded-lg">
+            <div class="font-bold">判断题</div>
+            <div>${trueFalseQuestions.length - wrongTrueFalseCount}/${trueFalseQuestions.length}</div>
+        </div>
+    </div>`;
+    
+    // Add improvement message if applicable
+    if (improvedQuestions.length > 0) {
+        resultHTML += `
+        <div class="bg-yellow-100 text-yellow-800 p-3 rounded-lg mt-3">
+            <div class="font-bold">进步提示</div>
+            <div>您在${improvedQuestions.length}道以前错过的题目上有所改进！继续加油！</div>
+        </div>`;
+    }
+    
+    // Set the HTML
+    finalScoreEl.innerHTML = resultHTML;
+    
+    
+    // Build encouragement message
+    let message = scorePercentage >= 90 ? "太棒了！老爸真是个天才！" :
+        scorePercentage >= 80 ? "很不错！老爸表现出色！" :
+        scorePercentage >= 70 ? "很不错！老爸继续努力！" :
+        scorePercentage >= 50 ? "还有进步空间，老爸加油！" :
+        "别灰心，老爸再多练习一下吧！";
+    
+    
+    resultMessageEl.textContent = message;
+}
+
+function showCuotiScreen() {
+    startScreen.classList.add("hidden");
+    resultsScreen.classList.add("hidden");
+    questionScreen.classList.add("hidden");
+    cuotiScreen.classList.remove("hidden");
+    cuotiList.innerHTML = '<p class="text-gray-500 text-center">正在加载错题...</p>';
+
+    let wrongQuestions = getQuestionsFromStorage().filter(q => q.wrong_count > 0);
+
+    if (wrongQuestions.length === 0) {
+        cuotiList.innerHTML = '<p class="text-gray-500 text-center">太棒了，没有错题！</p>';
+        return;
+    }
+
+    cuotiList.innerHTML = "";
+    wrongQuestions.sort((a, b) => b.wrong_count - a.wrong_count);
+    wrongQuestions.forEach((question, index) => {
+        const questionDiv = document.createElement('div');
+        questionDiv.className = 'p-4 border rounded-lg bg-white shadow-sm';
+        let optionsHtml = '';
+        for (const key in question.options) {
+            optionsHtml += `<li class="mt-1 text-gray-600">${key}. ${question.options[key]}</li>`;
+        }
+        const typeText = { 'single': '单选题', 'multiple': '多选题', 'true-false': '判断题' }[question.type];
+        questionDiv.innerHTML = `
+            <p class="font-semibold text-gray-800">
+                <span class="inline-block bg-gray-200 text-gray-800 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded-full">${typeText}</span>
+                ${index + 1}. ${question.question}
+            </p>
+            <ul class="list-none mt-2 pl-4">${optionsHtml}</ul>
+            <p class="mt-3 font-bold text-green-600">正确答案: ${question.answer}</p>
+            <p class="mt-1 text-sm text-red-500">答错次数: ${question.wrong_count} | 练习次数: ${question.practiced_count}</p>`;
+        cuotiList.appendChild(questionDiv);
+    });
+}
+
+function returnToHome() {
+    showModal(
+        "退出确认",
+        "您确定要退出本次答题吗？您的当前进度将不会被保存。",
+        () => {
+            questionScreen.classList.add("hidden");
+            resultsScreen.classList.add("hidden");
+            cuotiScreen.classList.add("hidden");
+            startScreen.classList.remove("hidden");
+        }
+    );
 }
 
 // --- Event Listeners ---
+document.addEventListener('DOMContentLoaded', initApp);
+
 startBtn.addEventListener("click", startQuiz);
 submitBtn.addEventListener("click", checkAnswer);
 nextBtn.addEventListener("click", nextQuestion);
 restartBtn.addEventListener("click", startQuiz);
+cuotiBtn.addEventListener("click", showCuotiScreen);
+cuotiResultsBtn.addEventListener("click", showCuotiScreen);
+homeFromQuestionBtn.addEventListener("click", returnToHome);
+
+backToStartBtn.addEventListener("click", () => {
+    cuotiScreen.classList.add("hidden");
+    startScreen.classList.remove("hidden");
+});
+
+resetStorageBtn.addEventListener("click", () => {
+    showModal(
+        "重置确认",
+        "您确定要重置所有答题记录吗？这将清除您的错题本和练习次数。",
+        () => {
+            localStorage.removeItem(STORAGE_KEY);
+            showNotification("答题记录已重置。");
+            initApp(); // Re-seed the local storage
+        }
+    );
+});
+
+modalConfirmBtn.addEventListener('click', () => {
+    if (typeof confirmCallback === 'function') {
+        confirmCallback();
+    }
+    hideModal();
+});
+
+modalCancelBtn.addEventListener('click', hideModal);
