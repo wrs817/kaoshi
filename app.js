@@ -12253,7 +12253,8 @@ const resultMessageEl = document.getElementById("result-message");
 let testQuestions = [];
 let currentQuestionIndex = 0;
 let score = 0;
-const TOTAL_QUESTIONS = 100;
+const TOTAL_QUESTIONS = 80;
+let maxPossibleScore = 0;
 
 // --- Utility Functions ---
 
@@ -12293,7 +12294,7 @@ function startQuiz() {
 
   // Select the required number of questions from each category
   const selectedSingles = singleChoiceQuestions.slice(0, 40);
-  const selectedMultiples = multipleChoiceQuestions.slice(0, 40);
+  const selectedMultiples = multipleChoiceQuestions.slice(0, 20);
   const selectedTrueFalse = trueFalseQuestions.slice(0, 20);
 
   // Combine and shuffle the final test questions
@@ -12303,6 +12304,9 @@ function startQuiz() {
     ...selectedTrueFalse,
   ];
   shuffleArray(testQuestions);
+
+  // Calculate max possible score (multiple-choice = 2 points, others = 1 point)
+  maxPossibleScore = (selectedSingles.length + selectedTrueFalse.length) + (selectedMultiples.length * 2);
 
   // Reset state
   currentQuestionIndex = 0;
@@ -12335,9 +12339,9 @@ function displayQuestion() {
     currentQuestionIndex + 1
   } / ${TOTAL_QUESTIONS}`;
   progressBar.style.width = `${
-    ((currentQuestionIndex + 1) / TOTAL_QUESTIONS) * 100
+    ((currentQuestionIndex + 1) / TOTAL_QUESTIONS) * 80
   }%`;
-  scoreText.textContent = `得分: ${score}`;
+  scoreText.textContent = `得分: ${score} / ${maxPossibleScore}`;
 
   // Update question text and type badge
   questionText.textContent = currentQuestion.question;
@@ -12416,8 +12420,14 @@ function checkAnswer() {
 
   // Update score and provide feedback
   if (isCorrect) {
-    score += 1;
-    feedbackContainer.textContent = `正确！`;
+    // Award 2 points for multiple-choice questions, 1 point for others
+    if (currentQuestion.type === "multiple") {
+      score += 2;
+      feedbackContainer.textContent = `正确！得分：2分`;
+    } else {
+      score += 1;
+      feedbackContainer.textContent = `正确！得分：1分`;
+    }
     feedbackContainer.className =
       "mt-6 p-4 rounded-lg text-center bg-green-100 text-green-800";
   } else {
@@ -12463,15 +12473,18 @@ function showResults() {
   questionScreen.classList.add("hidden");
   resultsScreen.classList.remove("hidden");
 
-  finalScoreEl.textContent = `${score}`;
+  // Calculate percentage score
+  const scorePercentage = (score / maxPossibleScore) * 100;
+  finalScoreEl.textContent = `${score}/${maxPossibleScore}`;
+  
   let message = "";
-  if (score >= 90) {
+  if (scorePercentage >= 90) {
     message = "太棒了！老爸真是个天才！";
-  } else if (score >= 80) {
+  } else if (scorePercentage >= 80) {
     message = "很不错！老爸表现出色！";
-  } else if (score >= 70) {
+  } else if (scorePercentage >= 70) {
     message = "很不错！老爸继续努力！";
-  } else if (score >= 50) {
+  } else if (scorePercentage >= 50) {
     message = "还有进步空间，老爸加油！";
   } else {
     message = "别灰心，老爸再多练习一下吧！";
