@@ -12614,9 +12614,8 @@ function checkAnswer() {
             const questionIndex = allQuestions.findIndex(q => q.id === currentQuestion.id);
             if (questionIndex !== -1) {
                 allQuestions[questionIndex].wrong_count = 0;
-                allQuestions[questionIndex].practiced_count = 0;
                 saveQuestionsToStorage(allQuestions);
-                console.log(`Answered correctly this time. Reset wrong count and practice count for question ${currentQuestion.id}`);
+                console.log(`Answered correctly this time. Reset wrong count for question ${currentQuestion.id} to 0`);
             }
         }
     } else {
