@@ -12448,24 +12448,42 @@ function startQuiz() {
     const multipleChoiceQuestions = allQuestions.filter((q) => q.type === "multiple");
     const trueFalseQuestions = allQuestions.filter((q) => q.type === "true-false");
 
-    // Sort each question type by priority
-    singleChoiceQuestions.sort((a, b) => calculateQuestionPriority(b) - calculateQuestionPriority(a));
-    multipleChoiceQuestions.sort((a, b) => calculateQuestionPriority(b) - calculateQuestionPriority(a));
-    trueFalseQuestions.sort((a, b) => calculateQuestionPriority(b) - calculateQuestionPriority(a));
-
     console.log(`单选题数量: ${singleChoiceQuestions.length}`);
     console.log(`多选题数量: ${multipleChoiceQuestions.length}`);
     console.log(`判断题数量: ${trueFalseQuestions.length}`);
 
-    // Shuffle each category
-    shuffleArray(singleChoiceQuestions);
-    shuffleArray(multipleChoiceQuestions);
-    shuffleArray(trueFalseQuestions);
+    // First, separate questions with wrong_count > 0 and the rest
+    const wrongSingles = singleChoiceQuestions.filter((q) => q.wrong_count && q.wrong_count > 0);
+    const wrongMultiples = multipleChoiceQuestions.filter((q) => q.wrong_count && q.wrong_count > 0);
+    const wrongTrueFalse = trueFalseQuestions.filter((q) => q.wrong_count && q.wrong_count > 0);
 
-    // Take the top priority questions from each type
-    const selectedSingles = singleChoiceQuestions.slice(0, 40);
-    const selectedMultiples = multipleChoiceQuestions.slice(0, 20);
-    const selectedTrueFalse = trueFalseQuestions.slice(0, 20);
+    // Get remaining questions (those without wrong answers)
+    const remainingSingles = singleChoiceQuestions.filter((q) => !q.wrong_count || q.wrong_count === 0);
+    const remainingMultiples = multipleChoiceQuestions.filter((q) => !q.wrong_count || q.wrong_count === 0);
+    const remainingTrueFalse = trueFalseQuestions.filter((q) => !q.wrong_count || q.wrong_count === 0);
+
+    // Sort remaining questions by priority
+    remainingSingles.sort((a, b) => calculateQuestionPriority(b) - calculateQuestionPriority(a));
+    remainingMultiples.sort((a, b) => calculateQuestionPriority(b) - calculateQuestionPriority(a));
+    remainingTrueFalse.sort((a, b) => calculateQuestionPriority(b) - calculateQuestionPriority(a));
+
+    // Shuffle the sorted questions to add some randomness
+    shuffleArray(wrongSingles);
+    shuffleArray(wrongMultiples);
+    shuffleArray(wrongTrueFalse);
+    shuffleArray(remainingSingles);
+    shuffleArray(remainingMultiples);
+    shuffleArray(remainingTrueFalse);
+
+    // Log how many questions with wrong answers are being included
+    console.log(`单选题错题数量: ${wrongSingles.length}`);
+    console.log(`多选题错题数量: ${wrongMultiples.length}`);
+    console.log(`判断题错题数量: ${wrongTrueFalse.length}`);
+
+    // First include all questions with wrong_count > 0, then fill the rest up to the limit
+    const selectedSingles = [...wrongSingles, ...remainingSingles].slice(0, 40);
+    const selectedMultiples = [...wrongMultiples, ...remainingMultiples].slice(0, 20);
+    const selectedTrueFalse = [...wrongTrueFalse, ...remainingTrueFalse].slice(0, 20);
     
     testQuestions = [...selectedSingles, ...selectedMultiples, ...selectedTrueFalse].slice(0, TOTAL_QUESTIONS);
 
@@ -12483,24 +12501,6 @@ function startQuiz() {
     questionScreen.classList.remove("hidden");
     resultsScreen.classList.add("hidden");
     cuotiScreen.classList.add("hidden");
-    
-    // Show a notification about question prioritization
-    const newQuestions = testQuestions.filter(q => !q.practiced_count || q.practiced_count === 0).length;
-    const wrongQuestions = testQuestions.filter(q => q.wrong_count && q.wrong_count > 0).length;
-    
-    if (newQuestions > 0 || wrongQuestions > 0) {
-        let message = "已优先选择";
-        if (newQuestions > 0) {
-            message += `${newQuestions}道新题目`;
-        }
-        if (newQuestions > 0 && wrongQuestions > 0) {
-            message += "和";
-        }
-        if (wrongQuestions > 0) {
-            message += `${wrongQuestions}道曾答错的题目`;
-        }
-        showNotification(message, false);
-    }
 
     displayQuestion();
 }
@@ -12538,11 +12538,6 @@ function displayQuestion() {
     const wrongCount = currentQuestion.wrong_count || 0;
     let statsText = `得分: ${score}`;
     
-    // Add stats if question has been practiced before
-    if (practicedCount > 0) {
-        const correctRate = Math.round(((practicedCount - wrongCount) / practicedCount) * 100);
-        statsText += ` | 练习: ${practicedCount}次 | 正确率: ${correctRate}%`;
-    }
     
     scoreText.textContent = statsText;
 
@@ -12610,6 +12605,20 @@ function checkAnswer() {
         feedbackContainer.className = "mt-6 p-4 rounded-lg text-center bg-green-100 text-green-800";
         // Track that this question was answered correctly in this session
         currentQuestion._answeredCorrect = true;
+        
+        // Reset wrong count to 0 if answered correctly
+        if (currentQuestion.wrong_count && currentQuestion.wrong_count > 0) {
+            currentQuestion.wrong_count = 0;
+            // Update the question in localStorage
+            let allQuestions = getQuestionsFromStorage();
+            const questionIndex = allQuestions.findIndex(q => q.id === currentQuestion.id);
+            if (questionIndex !== -1) {
+                allQuestions[questionIndex].wrong_count = 0;
+                allQuestions[questionIndex].practiced_count = 0;
+                saveQuestionsToStorage(allQuestions);
+                console.log(`Answered correctly this time. Reset wrong count and practice count for question ${currentQuestion.id}`);
+            }
+        }
     } else {
         feedbackContainer.textContent = `错误。正确答案是 ${currentQuestion.answer}`;
         feedbackContainer.className = "mt-6 p-4 rounded-lg text-center bg-red-100 text-red-800";
