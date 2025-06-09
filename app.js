@@ -12453,6 +12453,14 @@ function startQuiz() {
     multipleChoiceQuestions.sort((a, b) => calculateQuestionPriority(b) - calculateQuestionPriority(a));
     trueFalseQuestions.sort((a, b) => calculateQuestionPriority(b) - calculateQuestionPriority(a));
 
+    console.log(`单选题数量: ${singleChoiceQuestions.length}`);
+    console.log(`多选题数量: ${multipleChoiceQuestions.length}`);
+    console.log(`判断题数量: ${trueFalseQuestions.length}`);
+
+    // Shuffle each category
+    shuffleArray(singleChoiceQuestions);
+    shuffleArray(multipleChoiceQuestions);
+    shuffleArray(trueFalseQuestions);
 
     // Take the top priority questions from each type
     const selectedSingles = singleChoiceQuestions.slice(0, 40);
