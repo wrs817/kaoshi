@@ -13232,10 +13232,6 @@ function startQuiz() {
     30
   );
 
-  console.log(`单选题数量: ${selectedSingles.length}`);
-  console.log(`多选题数量: ${selectedMultiples.length}`);
-  console.log(`判断题数量: ${selectedTrueFalse.length}`);
-
   testQuestions = [
     ...selectedSingles,
     ...selectedMultiples,
@@ -13252,7 +13248,6 @@ function startQuiz() {
     (total, q) => total + (q.type === "multiple" ? 2 : 1),
     0
   );
-  updatePracticedCounts(testQuestions);
 
   currentQuestionIndex = 0;
   score = 0;
@@ -13263,6 +13258,17 @@ function startQuiz() {
   cuotiScreen.classList.add("hidden");
 
   displayQuestion();
+}
+
+function updatePracticedCount(question) {
+  let allQuestions = getQuestionsFromStorage();
+  const questionInDb = allQuestions.find((dbQ) => dbQ.id === question.id);
+  if (questionInDb) {
+    questionInDb.practiced_count = (questionInDb.practiced_count || 0) + 1;
+    // Also update the local test question object to reflect the change
+    question.practiced_count = questionInDb.practiced_count;
+  }
+  saveQuestionsToStorage(allQuestions);
 }
 
 function updatePracticedCounts(questionsToUpdate) {
@@ -13291,6 +13297,10 @@ function displayQuestion() {
   }
 
   const currentQuestion = testQuestions[currentQuestionIndex];
+  
+  // Update practice count when question is displayed
+  updatePracticedCount(currentQuestion);
+  
   progressText.textContent = `题目 ${currentQuestionIndex + 1} / ${
     testQuestions.length
   }`;
