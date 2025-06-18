@@ -8595,6 +8595,7 @@ const questionBank = [
       A: "同一投标人提交两个以上不同的投标文件或者投标报 价，但招标文件要求提交备选投标的除外",
       B: "投标报价低于成本或者高于招标文件设定的最高投标 限价",
       C: "投标文件没有对招标文件的实质性要求和条件作出响 应",
+      D: "投标人有串通投标、弄虚作假、行贿等违法行为"
     },
     answer: "ABCD",
   },
@@ -8602,10 +8603,10 @@ const questionBank = [
     type: "multiple",
     question: "依法必须进行招标的项目，其评标委员会由( )组成。",
     options: {
-      D: "招标监管部门代表",
       A: "招标人的代表",
       B: "有关技术专家",
       C: "有关经济专家",
+      D: "招标监管部门代表",
     },
     answer: "ABC",
   },
@@ -10403,6 +10404,7 @@ const questionBank = [
     question:
       "甲省F市某政府部门拟于2022年5月采购一批办公设备，以下 供应商具备资格的是( )",
     options: {
+      A: "天天商贸公司A市分公司",
       B: "新世纪商贸公司，2021年因拖欠税款被追究行政责任",
       C: "宏远商贸公司，2012年因消防设施不完备被停业整顿半个月",
       D: "凤凰商贸公司，因财务会计制度不健全正在停业整顿",
@@ -13297,16 +13299,16 @@ function displayQuestion() {
   }
 
   const currentQuestion = testQuestions[currentQuestionIndex];
-  
+
   // Update practice count when question is displayed
   updatePracticedCount(currentQuestion);
-  
+
   progressText.textContent = `题目 ${currentQuestionIndex + 1} / ${
     testQuestions.length
-  }`;
+    }`;
   progressBar.style.width = `${
     ((currentQuestionIndex + 1) / testQuestions.length) * 100
-  }%`;
+    }%`;
 
   console.log(
     `Displaying question ${currentQuestionIndex + 1}:`,
@@ -13381,9 +13383,9 @@ function checkAnswer() {
   let isCorrect =
     currentQuestion.type === "multiple"
       ? JSON.stringify(currentQuestion.answer.split("").sort()) ===
-        JSON.stringify(selectedAnswers.sort())
+      JSON.stringify(selectedAnswers.sort())
       : selectedAnswers.length === 1 &&
-        selectedAnswers[0] === currentQuestion.answer;
+      selectedAnswers[0] === currentQuestion.answer;
 
   if (isCorrect) {
     const points = currentQuestion.type === "multiple" ? 2 : 1;
@@ -13520,19 +13522,19 @@ function showResults() {
             <div class="font-bold">单选题</div>
             <div>${singleChoiceQuestions.length - wrongSingleCount}/${
     singleChoiceQuestions.length
-  }</div>
+    }</div>
         </div>
         <div class="bg-green-100 text-green-800 p-3 rounded-lg">
             <div class="font-bold">多选题</div>
             <div>${multipleChoiceQuestions.length - wrongMultipleCount}/${
     multipleChoiceQuestions.length
-  }</div>
+    }</div>
         </div>
         <div class="bg-purple-100 text-purple-800 p-3 rounded-lg">
             <div class="font-bold">判断题</div>
             <div>${trueFalseQuestions.length - wrongTrueFalseCount}/${
     trueFalseQuestions.length
-  }</div>
+    }</div>
         </div>
     </div>`;
 
@@ -13553,12 +13555,12 @@ function showResults() {
     scorePercentage >= 90
       ? "太棒了！老爸真是个天才！"
       : scorePercentage >= 80
-      ? "很不错！老爸表现出色！"
-      : scorePercentage >= 70
-      ? "很不错！老爸继续努力！"
-      : scorePercentage >= 50
-      ? "还有进步空间，老爸加油！"
-      : "别灰心，老爸再多练习一下吧！";
+        ? "很不错！老爸表现出色！"
+        : scorePercentage >= 70
+          ? "很不错！老爸继续努力！"
+          : scorePercentage >= 50
+            ? "还有进步空间，老爸加油！"
+            : "别灰心，老爸再多练习一下吧！";
 
   resultMessageEl.textContent = message;
 }
@@ -13603,10 +13605,10 @@ function showCuotiScreen() {
             <ul class="list-none mt-2 pl-4">${optionsHtml}</ul>
             <p class="mt-3 font-bold text-green-600">正确答案: ${
               question.answer
-            }</p>
+      }</p>
             <p class="mt-1 text-sm text-red-500">答错次数: ${
               question.wrong_count
-            } | 练习次数: ${question.practiced_count}</p>`;
+      } | 练习次数: ${question.practiced_count}</p>`;
     cuotiList.appendChild(questionDiv);
   });
 }
