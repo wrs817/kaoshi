@@ -13140,27 +13140,37 @@ function shuffleArray(array) {
 /**
  * Calculates a priority score for each question based on practice count and error count.
  * Higher score = higher priority to be selected
- * Questions that haven't been practiced get highest priority
- * Among practiced questions, ones with errors get higher priority
+ * Priority order:
+ * 1. Questions with wrong count > 0 (highest priority)
+ * 2. Questions with practice count = 0 (second priority)
+ * 3. Questions with practice count > 1 and wrong count = 0 (lowest priority)
  *
  * @param {Object} question - The question object
  * @returns {number} - Priority score
  */
 function calculateQuestionPriority(question) {
-  // If the question has never been practiced, it gets highest priority
-  if (!question.practiced_count || question.practiced_count === 0) {
-    return 1000;
+  const practiceCount = question.practiced_count || 0;
+  const wrongCount = question.wrong_count || 0;
+
+  // Priority 1: Questions with wrong count > 0 (highest priority)
+  // More wrong answers = higher priority within this group
+  if (wrongCount > 0) {
+    return 1000 + (wrongCount * 100);
   }
 
-  // If the question has been answered incorrectly, give it higher priority
-  // More wrong answers = higher priority
-  if (question.wrong_count && question.wrong_count > 0) {
-    return 500 + (question.wrong_count * 100) / question.practiced_count;
+  // Priority 2: Questions with practice count = 0 (second priority)
+  if (practiceCount === 0) {
+    return 500;
   }
 
-  // For questions that have been practiced but never wrong
-  // We want to prioritize less frequently practiced questions
-  return 100 / question.practiced_count;
+  // Priority 3: Questions with practice count > 1 and wrong count = 0 (lowest priority)
+  // Less frequently practiced questions get slightly higher priority within this group
+  if (practiceCount >= 1 && wrongCount === 0) {
+    return Math.max(1, 100 / practiceCount);
+  }
+
+  // Fallback (shouldn't reach here with the current logic)
+  return 1;
 }
 
 function startQuiz() {
@@ -13199,7 +13209,7 @@ function startQuiz() {
     (q) => !q.wrong_count || q.wrong_count === 0
   );
 
-  // Sort remaining questions by priority
+  // Sort remaining questions by priority (highest priority first)
   remainingSingles.sort(
     (a, b) => calculateQuestionPriority(b) - calculateQuestionPriority(a)
   );
@@ -13210,20 +13220,12 @@ function startQuiz() {
     (a, b) => calculateQuestionPriority(b) - calculateQuestionPriority(a)
   );
 
-  // Shuffle the sorted questions to add some randomness
-  shuffleArray(wrongSingles);
-  shuffleArray(wrongMultiples);
-  shuffleArray(wrongTrueFalse);
-  shuffleArray(remainingSingles);
-  shuffleArray(remainingMultiples);
-  shuffleArray(remainingTrueFalse);
-
   // Log how many questions with wrong answers are being included
   console.log(`单选题错题数量: ${wrongSingles.length}`);
   console.log(`多选题错题数量: ${wrongMultiples.length}`);
   console.log(`判断题错题数量: ${wrongTrueFalse.length}`);
 
-  // First include all questions with wrong_count > 0, then fill the rest up to the limit
+  // Select questions by priority: wrong questions first, then highest priority remaining questions
   const selectedSingles = [...wrongSingles, ...remainingSingles].slice(0, 30);
   const selectedMultiples = [...wrongMultiples, ...remainingMultiples].slice(
     0,
@@ -13234,10 +13236,23 @@ function startQuiz() {
     30
   );
 
+  // For each question type: keep wrong questions first, shuffle only the remaining questions
+  const remainingSinglesShuffled = [...remainingSingles.slice(0, Math.max(0, 30 - wrongSingles.length))];
+  shuffleArray(remainingSinglesShuffled);
+  const finalSingles = [...wrongSingles, ...remainingSinglesShuffled].slice(0, 30);
+  
+  const remainingMultiplesShuffled = [...remainingMultiples.slice(0, Math.max(0, 20 - wrongMultiples.length))];
+  shuffleArray(remainingMultiplesShuffled);
+  const finalMultiples = [...wrongMultiples, ...remainingMultiplesShuffled].slice(0, 20);
+  
+  const remainingTrueFalseShuffled = [...remainingTrueFalse.slice(0, Math.max(0, 30 - wrongTrueFalse.length))];
+  shuffleArray(remainingTrueFalseShuffled);
+  const finalTrueFalse = [...wrongTrueFalse, ...remainingTrueFalseShuffled].slice(0, 30);
+
   testQuestions = [
-    ...selectedSingles,
-    ...selectedMultiples,
-    ...selectedTrueFalse,
+    ...finalSingles,
+    ...finalMultiples,
+    ...finalTrueFalse,
   ].slice(0, TOTAL_QUESTIONS);
 
   if (testQuestions.length < TOTAL_QUESTIONS) {
@@ -13299,6 +13314,13 @@ function displayQuestion() {
   }
 
   const currentQuestion = testQuestions[currentQuestionIndex];
+
+  // Calculate and log priority score BEFORE updating practice count (to show original selection priority)
+  const originalPriorityScore = calculateQuestionPriority(currentQuestion);
+  console.log(
+    `Question ${currentQuestionIndex + 1} Original Priority Score: ${originalPriorityScore} ` +
+    `(practiced: ${currentQuestion.practiced_count || 0}, wrong: ${currentQuestion.wrong_count || 0})`
+  );
 
   // Update practice count when question is displayed
   updatePracticedCount(currentQuestion);
