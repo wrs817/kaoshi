@@ -6,7 +6,6 @@ import {
   loadUserProgress,
   saveAllProgress,
   deleteAllProgress,
-  supabase,
 } from './supabase';
 
 // --- CSV Parsing Functions ---
