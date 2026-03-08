@@ -1,0 +1,35 @@
+# Node modules
+node_modules/
+
+# npm
+package-lock.json
+
+# Build output
+dist/
+
+# Environment variables (contains secrets)
+.env.local
+.env.*.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# data
+data/2026
+
+# temporary files
+tmp/
+plans/
