@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>在线随机抽题测试</title>
+    <title>2026政府招标采购考试题库</title>
     <link rel="icon" type="image/png" href="favicon.png">
     <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -70,13 +70,41 @@
 
     <div class="w-full max-w-2xl mx-auto">
         <h1 class="text-3xl md:text-4xl font-bold text-center text-gray-800 mb-2">在线随机抽题测试</h1>
-        <p class="text-center text-gray-500 mb-8">检验你的学习成果</p>
+
 
         <!-- Main Container -->
         <div id="quiz-container" class="bg-white rounded-xl shadow-lg overflow-hidden">
 
+            <!-- Login Screen -->
+            <div id="login-screen" class="p-8 md:p-12">
+                <h2 class="text-2xl font-bold text-gray-800 mb-2 text-center">登录</h2>
+                <p class="text-gray-500 text-center mb-8 text-sm">请登录以继续答题，成绩将自动保存</p>
+                <div class="max-w-sm mx-auto space-y-4">
+                    <div>
+                        <label for="login-email" class="block text-sm font-medium text-gray-700 mb-1">邮箱</label>
+                        <input id="login-email" type="email" placeholder="your@email.com"
+                            class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800" />
+                    </div>
+                    <div>
+                        <label for="login-password" class="block text-sm font-medium text-gray-700 mb-1">密码</label>
+                        <input id="login-password" type="password" placeholder="••••••••"
+                            class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800" />
+                    </div>
+                    <p id="login-error" class="text-red-500 text-sm text-center hidden"></p>
+                    <button id="login-btn" class="btn w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 rounded-lg shadow-md">
+                        登录
+                    </button>
+                </div>
+            </div>
+
             <!-- Start Screen -->
-            <div id="start-screen" class="p-8 md:p-12 text-center">
+            <div id="start-screen" class="p-8 md:p-12 text-center hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <span id="user-email-display" class="text-sm text-gray-500 truncate max-w-[60%]"></span>
+                    <button id="logout-btn" class="btn bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-1 px-4 rounded-lg text-sm">
+                        退出登录
+                    </button>
+                </div>
                 <h2 class="text-2xl font-bold text-gray-800 mb-4">准备好开始了吗？</h2>
                 <p class="text-gray-600 mb-8">点击下方按钮，系统将从题库中随机抽取80道题进行测试。</p>
                 <div class="flex flex-col md:flex-row gap-4 justify-center">
@@ -169,7 +197,7 @@
 
         </div>
         <footer class="text-center mt-6 text-sm text-gray-400">
-            <p>&copy; 助力老爸考试成功!!!💯❤️</p>
+            <p>&copy; 祝考试成功!!!💯</p>
         </footer>
     </div>
     
@@ -185,7 +213,6 @@
         </div>
     </div>
 
-    <script src="app.js"></script>
-
+    <script type="module" src="/src/main.ts"></script>
 </body>
 </html>
