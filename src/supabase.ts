@@ -75,17 +75,13 @@ export async function saveAllProgress(
     }
   }
 
-  console.log(`Saving progress: ${Object.keys(blob).length} questions for user ${userId}`);
-
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase.from('user_progress') as any).upsert(
+  const { error } = await (supabase.from('user_progress') as any).upsert(
     { user_id: userId, progress: blob, updated_at: new Date().toISOString() },
     { onConflict: 'user_id' }
   );
   if (error) {
     console.error('Failed to save progress:', error.message, error);
-  } else {
-    console.log('Progress saved successfully', data);
   }
 }
 

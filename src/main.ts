@@ -69,8 +69,6 @@ function processCSVContent(csvContent: string): RawQuestion[] {
   }
   if (currentRow.trim()) rows.push(currentRow.trim());
 
-  console.log(`Found ${rows.length} rows`);
-
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i];
     if (!row || row.trim() === '') continue;
@@ -138,19 +136,15 @@ function processCSVContent(csvContent: string): RawQuestion[] {
     }
   }
 
-  console.log(`Total questions loaded: ${questionBankArray.length}`);
   return questionBankArray;
 }
 
 async function loadQuestionsFromCSV(): Promise<RawQuestion[]> {
   try {
-    console.log('Loading questions from CSV...');
     const response = await fetch('data/question_bank_2026.csv');
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
     const csvContent = await response.text();
-    const questions = processCSVContent(csvContent);
-    console.log(`Processed ${questions.length} questions from CSV`);
-    return questions;
+    return processCSVContent(csvContent);
   } catch (error) {
     console.error('Error loading CSV file:', error);
     return [];
@@ -324,10 +318,6 @@ function startQuiz(): void {
   const multipleChoiceQuestions = allQuestions.filter((q) => q.type === 'multiple');
   const trueFalseQuestions = allQuestions.filter((q) => q.type === 'true-false');
 
-  console.log(`单选题数量: ${singleChoiceQuestions.length}`);
-  console.log(`多选题数量: ${multipleChoiceQuestions.length}`);
-  console.log(`判断题数量: ${trueFalseQuestions.length}`);
-
   const wrongSingles = singleChoiceQuestions.filter((q) => q.wrong_count > 0);
   const wrongMultiples = multipleChoiceQuestions.filter((q) => q.wrong_count > 0);
   const wrongTrueFalse = trueFalseQuestions.filter((q) => q.wrong_count > 0);
@@ -341,10 +331,6 @@ function startQuiz(): void {
   const remainingTrueFalse = trueFalseQuestions
     .filter((q) => q.wrong_count === 0)
     .sort((a, b) => calculateQuestionPriority(b) - calculateQuestionPriority(a));
-
-  console.log(`单选题错题数量: ${wrongSingles.length}`);
-  console.log(`多选题错题数量: ${wrongMultiples.length}`);
-  console.log(`判断题错题数量: ${wrongTrueFalse.length}`);
 
   const remainingSinglesShuffled = remainingSingles.slice(
     0,
@@ -373,7 +359,7 @@ function startQuiz(): void {
   );
 
   if (testQuestions.length < TOTAL_QUESTIONS) {
-    console.warn(`Warning: Not enough questions. Found ${testQuestions.length}.`);
+    // Not enough questions available, use what we have
   }
 
   maxPossibleScore = testQuestions.reduce(
@@ -420,18 +406,10 @@ function displayQuestion(): void {
   const currentQuestion = testQuestions[currentQuestionIndex];
   if (!currentQuestion) return;
 
-  const originalPriorityScore = calculateQuestionPriority(currentQuestion);
-  console.log(
-    `Question ${currentQuestionIndex + 1} Original Priority Score: ${originalPriorityScore} ` +
-      `(practiced: ${currentQuestion.practiced_count}, wrong: ${currentQuestion.wrong_count})`
-  );
-
   updatePracticedCount(currentQuestion);
 
   progressText.textContent = `题目 ${currentQuestionIndex + 1} / ${testQuestions.length}`;
   progressBar.style.width = `${((currentQuestionIndex + 1) / testQuestions.length) * 100}%`;
-
-  console.log(`Displaying question ${currentQuestionIndex + 1}:`, currentQuestion);
 
   scoreText.textContent = `得分: ${score}`;
   questionText.textContent = currentQuestion.question;
@@ -509,7 +487,6 @@ function checkAnswer(): void {
       if (prev) {
         const updated: UserProgress = { ...prev, wrong_count: 0 };
         userProgressCache.set(currentQuestion.id, updated);
-        console.log(`Reset wrong count for question ${currentQuestion.id} to 0`);
       }
     }
   } else {
@@ -633,9 +610,7 @@ function showResults(): void {
   resultMessageEl.textContent = message;
 
   // Persist all session progress to Supabase as a single blob
-  void saveAllProgress(currentUserId, userProgressCache).then(() => {
-    console.log('saveAllProgress completed');
-  });
+  void saveAllProgress(currentUserId, userProgressCache);
 }
 
 function showCuotiScreen(): void {
@@ -726,7 +701,6 @@ async function handleLogout(): Promise<void> {
 }
 
 async function initApp(): Promise<void> {
-  console.log('Initializing app...');
   const session = await getSession();
 
   if (!session) {
@@ -749,7 +723,6 @@ async function initApp(): Promise<void> {
   userProgressCache = await loadUserProgress(currentUserId);
 
   startScreen.classList.remove('hidden');
-  console.log('App initialization complete');
 }
 
 // --- Event Listeners ---
