@@ -1,4 +1,4 @@
-import type { Question, RawQuestion, UserProgress } from './types';
+import type { Question, RawQuestion, UserProgress, Chapter } from './types';
 import {
   signIn,
   signOut,
@@ -151,10 +151,52 @@ async function loadQuestionsFromCSV(): Promise<RawQuestion[]> {
   }
 }
 
+// --- Chapter definitions (matches filenames in public/data/2026/) ---
+const CHAPTERS: Chapter[] = [
+  { id: 'ch_1',  filename: 'data/2026/1、《政府采购法》【100题】.csv',                                                                        title: '《政府采购法》【100题】' },
+  { id: 'ch_2',  filename: 'data/2026/2、《政府采购法实施条例》【100题】.csv',                                                                  title: '《政府采购法实施条例》【100题】' },
+  { id: 'ch_3',  filename: 'data/2026/3、《招标投标法》【30题】.csv',                                                                          title: '《招标投标法》【30题】' },
+  { id: 'ch_4',  filename: 'data/2026/4、《招标投标法实施条例》【30题】.csv',                                                                    title: '《招标投标法实施条例》【30题】' },
+  { id: 'ch_5',  filename: 'data/2026/5、《政府采购非招标采购方式管理办法》（74号令）【90题】.csv',                                               title: '《政府采购非招标采购方式管理办法》（74号令）【90题】' },
+  { id: 'ch_6',  filename: 'data/2026/6、《政府采购货物和服务招标投标管理办法》（87号令）【90题】.csv',                                           title: '《政府采购货物和服务招标投标管理办法》（87号令）【90题】' },
+  { id: 'ch_7',  filename: 'data/2026/7、《政府购买服务管理办法》（102号令）【90题】.csv',                                                       title: '《政府购买服务管理办法》（102号令）【90题】' },
+  { id: 'ch_8',  filename: 'data/2026/8、《政府采购信息发布管理办法》（101号令）【60题】.csv',                                                   title: '《政府采购信息发布管理办法》（101号令）【60题】' },
+  { id: 'ch_9',  filename: 'data/2026/9、《政府采购需求管理办法》【90题】.csv',                                                                  title: '《政府采购需求管理办法》【90题】' },
+  { id: 'ch_10', filename: 'data/2026/10、《政府采购代理机构管理暂行办法》【90题】.csv',                                                         title: '《政府采购代理机构管理暂行办法》【90题】' },
+  { id: 'ch_11', filename: 'data/2026/11、《福建省政府采购代理机构执业综合评价规则（2024 版）》【90题】.csv',                                    title: '《福建省政府采购代理机构执业综合评价规则（2024版）》【90题】' },
+  { id: 'ch_12', filename: 'data/2026/12、《财政部关于进一步规范政府采购评审工作有关问题的通知》财库〔2012〕69号【67题】.csv',                   title: '《财政部关于进一步规范政府采购评审工作》财库〔2012〕69号【67题】' },
+  { id: 'ch_13', filename: 'data/2026/13、《国务院办公厅关于在政府采购中实施本国产品标准及相关政策的通知》【51题】.csv',                         title: '《国务院办公厅关于在政府采购中实施本国产品标准》【51题】' },
+  { id: 'ch_14', filename: 'data/2026/14、《福建省财政厅关于加强政府绿色采购工作的通知》【58题】.csv',                                          title: '《福建省财政厅关于加强政府绿色采购工作的通知》【58题】' },
+  { id: 'ch_15', filename: 'data/2026/15、《福建省政府采购评审专家管理办法》【60题】.csv',                                                       title: '《福建省政府采购评审专家管理办法》【60题】' },
+  { id: 'ch_16', filename: 'data/2026/16、《福建省政府集中采购目录及限额标准》【69题】.csv',                                                     title: '《福建省政府集中采购目录及限额标准》【69题】' },
+  { id: 'ch_17', filename: 'data/2026/17、《政府采购促进中小企业发展管理办法》试题【95题】.csv',                                                 title: '《政府采购促进中小企业发展管理办法》【95题】' },
+  { id: 'ch_18', filename: 'data/2026/18、《政府采购合作创新采购方式管理暂行办法》【60题】.csv',                                                 title: '《政府采购合作创新采购方式管理暂行办法》【60题】' },
+  { id: 'ch_19', filename: 'data/2026/19、《政府采购进口产品管理办法》【78题】.csv',                                                             title: '《政府采购进口产品管理办法》【78题】' },
+  { id: 'ch_20', filename: 'data/2026/20、《政府采购竞争性磋商采购方式管理暂行办法》【66题】.csv',                                               title: '《政府采购竞争性磋商采购方式管理暂行办法》【66题】' },
+  { id: 'ch_21', filename: 'data/2026/21、《政府采购框架协议采购方式管理暂行办法》【99题】.csv',                                                 title: '《政府采购框架协议采购方式管理暂行办法》【99题】' },
+  { id: 'ch_22', filename: 'data/2026/22、《政府采购评审专家管理办法》【60题】.csv',                                                             title: '《政府采购评审专家管理办法》【60题】' },
+  { id: 'ch_23', filename: 'data/2026/23、《政府采购质疑和投诉办法》【109题】.csv',                                                             title: '《政府采购质疑和投诉办法》【109题】' },
+  { id: 'ch_24', filename: 'data/2026/24、意向公开、内控、异常低价【39题】.csv',                                                                title: '意向公开、内控、异常低价【39题】' },
+  { id: 'ch_25', filename: 'data/2026/25、政府采购系统操作【46题】.csv',                                                                        title: '政府采购系统操作【46题】' },
+];
+
+async function loadChapterQuestions(chapter: Chapter): Promise<RawQuestion[]> {
+  try {
+    const response = await fetch(chapter.filename);
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    const csvContent = await response.text();
+    return processCSVContent(csvContent);
+  } catch (error) {
+    console.error(`Error loading chapter ${chapter.id}:`, error);
+    return [];
+  }
+}
+
 // --- App State ---
 let rawQuestionBank: RawQuestion[] = [];
 let userProgressCache = new Map<string, UserProgress>();
 let currentUserId = '';
+let currentChapter: Chapter | null = null; // null = full randomized test
 
 // --- DOM Element Retrieval ---
 
@@ -173,11 +215,15 @@ const userEmailDisplay = getElement('user-email-display');
 const logoutBtn = getElement<HTMLButtonElement>('logout-btn');
 
 const startScreen = getElement('start-screen');
+const chapterScreen = getElement('chapter-screen');
+const chapterList = getElement('chapter-list');
 const questionScreen = getElement('question-screen');
 const resultsScreen = getElement('results-screen');
 const cuotiScreen = getElement('cuoti-screen');
 
 const startBtn = getElement<HTMLButtonElement>('start-btn');
+const chapterBtn = getElement<HTMLButtonElement>('chapter-btn');
+const backFromChapterBtn = getElement<HTMLButtonElement>('back-from-chapter-btn');
 const submitBtn = getElement<HTMLButtonElement>('submit-btn');
 const nextBtn = getElement<HTMLButtonElement>('next-btn');
 const restartBtn = getElement<HTMLButtonElement>('restart-btn');
@@ -299,9 +345,10 @@ function calculateQuestionPriority(question: Question): number {
   return 1;
 }
 
-function getEnrichedQuestions(): Question[] {
-  return rawQuestionBank.map((q, index) => {
-    const id = `q_${index}`;
+function getEnrichedQuestions(questions?: RawQuestion[], idPrefix = 'q'): Question[] {
+  const source = questions ?? rawQuestionBank;
+  return source.map((q, index) => {
+    const id = `${idPrefix}_${index}`;
     const progress = userProgressCache.get(id);
     return {
       ...q,
@@ -313,6 +360,7 @@ function getEnrichedQuestions(): Question[] {
 }
 
 function startQuiz(): void {
+  currentChapter = null;
   const allQuestions = getEnrichedQuestions();
   const singleChoiceQuestions = allQuestions.filter((q) => q.type === 'single');
   const multipleChoiceQuestions = allQuestions.filter((q) => q.type === 'multiple');
@@ -410,8 +458,7 @@ function displayQuestion(): void {
 
   progressText.textContent = `题目 ${currentQuestionIndex + 1} / ${testQuestions.length}`;
   progressBar.style.width = `${((currentQuestionIndex + 1) / testQuestions.length) * 100}%`;
-
-  scoreText.textContent = `得分: ${score}`;
+  scoreText.textContent = currentChapter ? `章节练习` : `得分: ${score}`;
   questionText.textContent = currentQuestion.question;
 
   const { practiced_count: practicedCount, wrong_count: wrongCount } = currentQuestion;
@@ -508,7 +555,7 @@ function checkAnswer(): void {
   });
 
   feedbackContainer.classList.remove('hidden');
-  scoreText.textContent = `得分: ${score}`;
+  if (!currentChapter) scoreText.textContent = `得分: ${score}`;
   submitBtn.classList.add('hidden');
   nextBtn.classList.remove('hidden');
   submitBtn.disabled = true;
@@ -549,6 +596,28 @@ function nextQuestion(): void {
 function showResults(): void {
   questionScreen.classList.add('hidden');
   resultsScreen.classList.remove('hidden');
+
+  if (currentChapter) {
+    const total = testQuestions.length;
+    const correct = testQuestions.filter((q) => q._answeredCorrect).length;
+    const wrong = total - correct;
+    finalScoreEl.innerHTML = `
+      <div class="text-4xl font-bold text-indigo-500 my-4">${currentChapter.title}</div>
+      <div class="text-5xl font-bold text-blue-500 my-2">${correct} / ${total}</div>
+      <div class="grid grid-cols-2 gap-3 my-4 text-sm">
+        <div class="bg-green-100 text-green-800 p-3 rounded-lg"><div class="font-bold">答对</div><div>${correct} 题</div></div>
+        <div class="bg-red-100 text-red-800 p-3 rounded-lg"><div class="font-bold">答错</div><div>${wrong} 题</div></div>
+      </div>`;
+    const pct = total > 0 ? (correct / total) * 100 : 0;
+    resultMessageEl.textContent =
+      pct >= 90 ? '太棒了！掌握得很好！' :
+      pct >= 70 ? '不错！继续加油！' :
+      '还需多加练习，加油！';
+    // Show/hide the "查看错题" button based on whether there are wrong answers
+    cuotiResultsBtn.classList.toggle('hidden', wrong === 0);
+    void saveAllProgress(currentUserId, userProgressCache);
+    return;
+  }
 
   const wrongAnsweredQuestions = testQuestions.filter(
     (q) => q.practiced_count > 1 && q.wrong_count > 0
@@ -613,16 +682,28 @@ function showResults(): void {
   void saveAllProgress(currentUserId, userProgressCache);
 }
 
-function showCuotiScreen(): void {
+function showCuotiScreen(chapter: Chapter | null = null): void {
   startScreen.classList.add('hidden');
   resultsScreen.classList.add('hidden');
   questionScreen.classList.add('hidden');
+  chapterScreen.classList.add('hidden');
   cuotiScreen.classList.remove('hidden');
+
+  // Update cuoti screen title to show chapter name if applicable
+  const cuotiTitle = cuotiScreen.querySelector('h2');
+  if (cuotiTitle) {
+    cuotiTitle.textContent = chapter ? `错题本 — ${chapter.title}` : '错题本';
+  }
+
   cuotiList.innerHTML = '<p class="text-gray-500 text-center">正在加载错题...</p>';
 
-  const wrongQuestions = getEnrichedQuestions()
-    .filter((q) => q.wrong_count > 0)
-    .sort((a, b) => b.wrong_count - a.wrong_count);
+  // Filter to chapter prefix if in chapter mode
+  const allEnriched = getEnrichedQuestions();
+  const chapterEnriched = chapter
+    ? testQuestions.filter((q) => q.wrong_count > 0)
+    : allEnriched.filter((q) => q.wrong_count > 0);
+
+  const wrongQuestions = chapterEnriched.sort((a, b) => b.wrong_count - a.wrong_count);
 
   if (wrongQuestions.length === 0) {
     cuotiList.innerHTML = '<p class="text-gray-500 text-center">太棒了，没有错题！</p>';
@@ -654,12 +735,73 @@ function showCuotiScreen(): void {
   });
 }
 
+function showChapterScreen(): void {
+  startScreen.classList.add('hidden');
+  chapterScreen.classList.remove('hidden');
+
+  chapterList.innerHTML = '';
+  CHAPTERS.forEach((chapter) => {
+    // Count wrong answers for this chapter from the progress cache
+    const wrongCount = [...userProgressCache.entries()]
+      .filter(([id, p]) => id.startsWith(chapter.id + '_') && p.wrong_count > 0)
+      .length;
+
+    const btn = document.createElement('button');
+    btn.className =
+      'btn w-full text-left px-4 py-3 bg-white border border-gray-200 rounded-lg hover:bg-indigo-50 hover:border-indigo-300 text-gray-800 font-medium shadow-sm flex justify-between items-center';
+    btn.innerHTML = `
+      <span>${chapter.title}</span>
+      ${wrongCount > 0
+        ? `<span class="ml-2 shrink-0 bg-red-100 text-red-700 text-xs font-bold px-2 py-0.5 rounded-full">错题 ${wrongCount}</span>`
+        : ''}
+    `;
+    btn.addEventListener('click', () => { void startChapterQuiz(chapter); });
+    chapterList.appendChild(btn);
+  });
+}
+
+async function startChapterQuiz(chapter: Chapter): Promise<void> {
+  currentChapter = chapter;
+  chapterScreen.classList.add('hidden');
+
+  // Show a loading state on the question screen briefly
+  questionScreen.classList.remove('hidden');
+  questionText.textContent = '正在加载题目...';
+  optionsContainer.innerHTML = '';
+  submitBtn.classList.add('hidden');
+  nextBtn.classList.add('hidden');
+
+  const rawQuestions = await loadChapterQuestions(chapter);
+  if (rawQuestions.length === 0) {
+    showNotification('无法加载该章节题目', true);
+    questionScreen.classList.add('hidden');
+    startScreen.classList.remove('hidden');
+    return;
+  }
+
+  testQuestions = getEnrichedQuestions(rawQuestions, chapter.id);
+  shuffleArray(testQuestions);
+
+  maxPossibleScore = testQuestions.reduce(
+    (total, q) => total + (q.type === 'multiple' ? 2 : 1),
+    0
+  );
+  currentQuestionIndex = 0;
+  score = 0;
+
+  resultsScreen.classList.add('hidden');
+  cuotiScreen.classList.add('hidden');
+
+  displayQuestion();
+}
+
 function returnToHome(): void {
   showModal('退出确认', '您确定要退出本次答题吗？当前进度将会保存。', () => {
     void saveAllProgress(currentUserId, userProgressCache);
     questionScreen.classList.add('hidden');
     resultsScreen.classList.add('hidden');
     cuotiScreen.classList.add('hidden');
+    chapterScreen.classList.add('hidden');
     startScreen.classList.remove('hidden');
   });
 }
@@ -804,11 +946,16 @@ loginPasswordInput.addEventListener('keydown', (e) => {
 logoutBtn.addEventListener('click', () => { void handleLogout(); });
 
 startBtn.addEventListener('click', startQuiz);
+chapterBtn.addEventListener('click', showChapterScreen);
+backFromChapterBtn.addEventListener('click', () => {
+  chapterScreen.classList.add('hidden');
+  startScreen.classList.remove('hidden');
+});
 submitBtn.addEventListener('click', checkAnswer);
 nextBtn.addEventListener('click', nextQuestion);
 restartBtn.addEventListener('click', startQuiz);
-cuotiBtn.addEventListener('click', showCuotiScreen);
-cuotiResultsBtn.addEventListener('click', showCuotiScreen);
+cuotiBtn.addEventListener('click', () => showCuotiScreen(null));
+cuotiResultsBtn.addEventListener('click', () => showCuotiScreen(currentChapter));
 homeFromQuestionBtn.addEventListener('click', returnToHome);
 
 backToStartBtn.addEventListener('click', () => {

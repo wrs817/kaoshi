@@ -25,6 +25,13 @@ export interface UserProgress {
 // { "q_0": [practiced_count, wrong_count], "q_5": [3, 2], ... }
 export type ProgressBlob = Record<string, [number, number]>;
 
+// A chapter (one of the 25 individual CSV files)
+export interface Chapter {
+  id: string;       // e.g. "ch_1"  (stable key for progress namespacing)
+  filename: string; // e.g. "data/2026/1、《政府采购法》【100题】.csv"
+  title: string;    // display name, e.g. "《政府采购法》【100题】"
+}
+
 // Supabase DB row shape — one row per user
 export interface UserProgressRow {
   user_id: string; // uuid, primary key
