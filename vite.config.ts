@@ -25,9 +25,6 @@ async function removeFiles(dir: string, predicate: (name: string) => boolean): P
   );
 }
 
-const UNWANTED_EXTENSIONS = new Set(['.xlsx', '.csv', '.js']);
-const KEEP_FILES = new Set(['question_bank_2026.csv']);
-
 export default defineConfig({
   root: '.',
   base: '/kaoshi/',
@@ -39,10 +36,10 @@ export default defineConfig({
     {
       name: 'clean-dist-data',
       async closeBundle() {
-        // Only clean inside dist/data, not dist/assets (which contains the app bundle)
+        // Only remove .xlsx files from dist/data (keep all CSVs needed at runtime)
         await removeFiles(
           path.resolve('dist/data'),
-          (name) => UNWANTED_EXTENSIONS.has(path.extname(name)) && !KEEP_FILES.has(name)
+          (name) => path.extname(name) === '.xlsx'
         );
         console.log('Cleaned unwanted data files from dist.');
       },
