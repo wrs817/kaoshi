@@ -6,6 +6,7 @@ import {
   loadUserProgress,
   saveAllProgress,
   deleteAllProgress,
+  logLoginEvent,
 } from './supabase';
 
 // --- CSV Parsing Functions ---
@@ -665,6 +666,47 @@ function returnToHome(): void {
 
 // --- Auth Functions ---
 
+// --- Device / Browser Detection ---
+
+function detectDeviceType(): 'mobile' | 'tablet' | 'desktop' {
+  const ua = navigator.userAgent;
+  if (/tablet|ipad|playbook|silk/i.test(ua)) return 'tablet';
+  if (/mobile|iphone|ipod|android|blackberry|opera mini|iemobile|wpdesktop/i.test(ua))
+    return 'mobile';
+  return 'desktop';
+}
+
+function detectOS(): string {
+  const ua = navigator.userAgent;
+  if (/windows nt/i.test(ua)) return 'Windows';
+  if (/mac os x/i.test(ua)) return 'macOS';
+  if (/android/i.test(ua)) return 'Android';
+  if (/iphone|ipad|ipod/i.test(ua)) return 'iOS';
+  if (/linux/i.test(ua)) return 'Linux';
+  return 'Unknown';
+}
+
+function detectBrowser(): string {
+  const ua = navigator.userAgent;
+  if (/edg\//i.test(ua)) return 'Edge';
+  if (/opr\//i.test(ua)) return 'Opera';
+  if (/chrome/i.test(ua)) return 'Chrome';
+  if (/safari/i.test(ua)) return 'Safari';
+  if (/firefox/i.test(ua)) return 'Firefox';
+  if (/msie|trident/i.test(ua)) return 'IE';
+  return 'Unknown';
+}
+
+async function fetchClientIP(): Promise<string | null> {
+  try {
+    const res = await fetch('https://api.ipify.org?format=json');
+    const data = (await res.json()) as { ip: string };
+    return data.ip ?? null;
+  } catch {
+    return null;
+  }
+}
+
 async function handleLogin(): Promise<void> {
   const email = loginEmailInput.value.trim();
   const password = loginPasswordInput.value;
@@ -681,6 +723,23 @@ async function handleLogin(): Promise<void> {
     loginError.classList.remove('hidden');
     return;
   }
+
+  // Fire-and-forget: track login event
+  void (async () => {
+    const session = await getSession();
+    if (!session) return;
+    const [ip] = await Promise.all([fetchClientIP()]);
+    void logLoginEvent({
+      user_id: session.user.id,
+      email: session.user.email ?? email,
+      user_agent: navigator.userAgent,
+      ip_address: ip,
+      device_type: detectDeviceType(),
+      os: detectOS(),
+      browser: detectBrowser(),
+      logged_in_at: new Date().toISOString(),
+    });
+  })();
 
   await initApp();
 }

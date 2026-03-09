@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import type { UserProgress, UserProgressRow, ProgressBlob } from './types';
+import type { UserProgress, UserProgressRow, ProgressBlob, LoginEvent } from './types';
 
 export type Database = {
   public: {
@@ -8,6 +8,11 @@ export type Database = {
         Row: UserProgressRow;
         Insert: UserProgressRow;
         Update: Partial<Omit<UserProgressRow, 'user_id'>>;
+      };
+      user_logins: {
+        Row: LoginEvent & { id: number };
+        Insert: LoginEvent;
+        Update: Partial<LoginEvent>;
       };
     };
   };
@@ -92,4 +97,11 @@ export async function deleteAllProgress(userId: string): Promise<void> {
     .delete()
     .eq('user_id', userId);
   if (error) console.error('Failed to delete progress:', error.message);
+}
+
+/** Insert a login event row for tracking. Fire-and-forget (errors are non-fatal). */
+export async function logLoginEvent(event: LoginEvent): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase.from('user_logins') as any).insert(event);
+  if (error) console.warn('Failed to log login event:', error.message);
 }

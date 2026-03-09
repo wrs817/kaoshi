@@ -31,3 +31,15 @@ export interface UserProgressRow {
   progress: ProgressBlob;
   updated_at: string; // timestamptz as ISO string
 }
+
+// Login event tracking
+export interface LoginEvent {
+  user_id: string;
+  email: string;
+  user_agent: string;
+  ip_address: string | null;
+  device_type: 'mobile' | 'tablet' | 'desktop';
+  os: string;
+  browser: string;
+  logged_in_at: string;
+}
