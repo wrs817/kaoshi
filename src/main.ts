@@ -30,7 +30,7 @@ function parseOptions(
     options['A'] = '对';
     options['B'] = '错';
   } else {
-    const optionPattern = /([A-G])\.\s*([^A-G]*?)(?=[A-G]\.|$)/g;
+    const optionPattern = /([A-G])[. ]\s*([^A-G]*?)(?=[A-G][. ]|$)/g;
     let match: RegExpExecArray | null;
     while ((match = optionPattern.exec(cleanOptions)) !== null) {
       const letter = match[1];
