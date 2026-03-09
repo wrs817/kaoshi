@@ -39,8 +39,9 @@ export default defineConfig({
     {
       name: 'clean-dist-data',
       async closeBundle() {
+        // Only clean inside dist/data, not dist/assets (which contains the app bundle)
         await removeFiles(
-          path.resolve('dist'),
+          path.resolve('dist/data'),
           (name) => UNWANTED_EXTENSIONS.has(path.extname(name)) && !KEEP_FILES.has(name)
         );
         console.log('Cleaned unwanted data files from dist.');
