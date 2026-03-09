@@ -707,6 +707,25 @@ async function fetchClientIP(): Promise<string | null> {
   }
 }
 
+/** Fire-and-forget: log a login event for the current session. */
+function trackLoginEvent(email: string): void {
+  void (async () => {
+    const session = await getSession();
+    if (!session) return;
+    const ip = await fetchClientIP();
+    void logLoginEvent({
+      user_id: session.user.id,
+      email: session.user.email ?? email,
+      user_agent: navigator.userAgent,
+      ip_address: ip,
+      device_type: detectDeviceType(),
+      os: detectOS(),
+      browser: detectBrowser(),
+      logged_in_at: new Date().toISOString(),
+    });
+  })();
+}
+
 async function handleLogin(): Promise<void> {
   const email = loginEmailInput.value.trim();
   const password = loginPasswordInput.value;
@@ -724,22 +743,8 @@ async function handleLogin(): Promise<void> {
     return;
   }
 
-  // Fire-and-forget: track login event
-  void (async () => {
-    const session = await getSession();
-    if (!session) return;
-    const [ip] = await Promise.all([fetchClientIP()]);
-    void logLoginEvent({
-      user_id: session.user.id,
-      email: session.user.email ?? email,
-      user_agent: navigator.userAgent,
-      ip_address: ip,
-      device_type: detectDeviceType(),
-      os: detectOS(),
-      browser: detectBrowser(),
-      logged_in_at: new Date().toISOString(),
-    });
-  })();
+  // Track every explicit login (logout → login counts as a new event)
+  trackLoginEvent(loginEmailInput.value.trim());
 
   await initApp();
 }
@@ -771,6 +776,9 @@ async function initApp(): Promise<void> {
   currentUserId = session.user.id;
   userEmailDisplay.textContent = session.user.email ?? '';
   loginScreen.classList.add('hidden');
+
+  // Track session resumptions (page refresh with existing session)
+  trackLoginEvent(session.user.email ?? '');
 
   // Load questions if not yet loaded
   if (rawQuestionBank.length === 0) {
