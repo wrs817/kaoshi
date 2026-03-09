@@ -213,6 +213,7 @@ const loginBtn = getElement<HTMLButtonElement>('login-btn');
 const loginError = getElement('login-error');
 const userEmailDisplay = getElement('user-email-display');
 const logoutBtn = getElement<HTMLButtonElement>('logout-btn');
+const topBar = getElement('top-bar');
 
 const startScreen = getElement('start-screen');
 const chapterScreen = getElement('chapter-screen');
@@ -231,6 +232,9 @@ const resetStorageBtn = getElement<HTMLButtonElement>('reset-storage-btn');
 const homeFromQuestionBtn = getElement<HTMLButtonElement>('home-from-question-btn');
 
 const cuotiBtn = getElement<HTMLButtonElement>('cuoti-btn');
+const cuotiSubmenu = getElement('cuoti-submenu');
+const cuotiMoniBtn = getElement<HTMLButtonElement>('cuoti-moni-btn');
+const chapterCuotiBtn = getElement<HTMLButtonElement>('chapter-cuoti-btn');
 const cuotiResultsBtn = getElement<HTMLButtonElement>('cuoti-results-btn');
 const backToStartBtn = getElement<HTMLButtonElement>('back-to-start-btn');
 
@@ -579,7 +583,7 @@ function nextQuestion(): void {
 
   if (currentQuestionIndex < testQuestions.length) {
     const currentType = testQuestions[currentQuestionIndex]?.type;
-    if (currentType && currentType !== previousType) {
+    if (currentType && currentType !== previousType && !currentChapter) {
       const sectionName: Record<Question['type'], string> = {
         single: '单选题',
         multiple: '多选题',
@@ -692,18 +696,25 @@ function showCuotiScreen(chapter: Chapter | null = null): void {
   // Update cuoti screen title to show chapter name if applicable
   const cuotiTitle = cuotiScreen.querySelector('h2');
   if (cuotiTitle) {
-    cuotiTitle.textContent = chapter ? `错题本 — ${chapter.title}` : '错题本';
+    cuotiTitle.textContent = chapter ? `错题本 — ${chapter.title}` : '模拟测试错题';
   }
 
   cuotiList.innerHTML = '<p class="text-gray-500 text-center">正在加载错题...</p>';
 
   // Filter to chapter prefix if in chapter mode
-  const allEnriched = getEnrichedQuestions();
-  const chapterEnriched = chapter
-    ? testQuestions.filter((q) => q.wrong_count > 0)
-    : allEnriched.filter((q) => q.wrong_count > 0);
+  let wrongQuestions: Question[];
 
-  const wrongQuestions = chapterEnriched.sort((a, b) => b.wrong_count - a.wrong_count);
+  if (chapter) {
+    // Chapter mode: use already-loaded testQuestions (chapter-scoped IDs)
+    wrongQuestions = testQuestions
+      .filter((q) => q.wrong_count > 0)
+      .sort((a, b) => b.wrong_count - a.wrong_count);
+  } else {
+    // Global mode: main question bank (q_ prefix) only
+    wrongQuestions = getEnrichedQuestions()
+      .filter((q) => q.wrong_count > 0)
+      .sort((a, b) => b.wrong_count - a.wrong_count);
+  }
 
   if (wrongQuestions.length === 0) {
     cuotiList.innerHTML = '<p class="text-gray-500 text-center">太棒了，没有错题！</p>';
@@ -735,9 +746,15 @@ function showCuotiScreen(chapter: Chapter | null = null): void {
   });
 }
 
-function showChapterScreen(): void {
+function showChapterScreen(mode: 'practice' | 'cuoti' = 'practice'): void {
   startScreen.classList.add('hidden');
   chapterScreen.classList.remove('hidden');
+
+  // Update header title based on mode
+  const chapterHeader = chapterScreen.querySelector('h2');
+  if (chapterHeader) {
+    chapterHeader.textContent = mode === 'cuoti' ? '章节错题本' : '按章节练习';
+  }
 
   chapterList.innerHTML = '';
   CHAPTERS.forEach((chapter) => {
@@ -745,6 +762,9 @@ function showChapterScreen(): void {
     const wrongCount = [...userProgressCache.entries()]
       .filter(([id, p]) => id.startsWith(chapter.id + '_') && p.wrong_count > 0)
       .length;
+
+    // In cuoti mode, skip chapters with no wrong answers
+    if (mode === 'cuoti' && wrongCount === 0) return;
 
     const btn = document.createElement('button');
     btn.className =
@@ -755,9 +775,32 @@ function showChapterScreen(): void {
         ? `<span class="ml-2 shrink-0 bg-red-100 text-red-700 text-xs font-bold px-2 py-0.5 rounded-full">错题 ${wrongCount}</span>`
         : ''}
     `;
-    btn.addEventListener('click', () => { void startChapterQuiz(chapter); });
+    if (mode === 'cuoti') {
+      btn.addEventListener('click', () => { void showChapterCuoti(chapter); });
+    } else {
+      btn.addEventListener('click', () => { void startChapterQuiz(chapter); });
+    }
     chapterList.appendChild(btn);
   });
+
+  // Show empty state in cuoti mode if no chapters have errors
+  if (mode === 'cuoti' && chapterList.children.length === 0) {
+    chapterList.innerHTML = '<p class="text-gray-500 text-center py-8">太棒了，各章节均没有错题！</p>';
+  }
+}
+
+async function showChapterCuoti(chapter: Chapter): Promise<void> {
+  chapterScreen.classList.add('hidden');
+  const rawQuestions = await loadChapterQuestions(chapter);
+  if (rawQuestions.length === 0) {
+    showNotification('无法加载该章节题目', true);
+    showChapterScreen('cuoti');
+    return;
+  }
+  // Populate testQuestions with enriched chapter questions so showCuotiScreen can filter them
+  currentChapter = chapter;
+  testQuestions = getEnrichedQuestions(rawQuestions, chapter.id);
+  showCuotiScreen(chapter);
 }
 
 async function startChapterQuiz(chapter: Chapter): Promise<void> {
@@ -802,6 +845,7 @@ function returnToHome(): void {
     resultsScreen.classList.add('hidden');
     cuotiScreen.classList.add('hidden');
     chapterScreen.classList.add('hidden');
+    cuotiSubmenu.classList.add('hidden');
     startScreen.classList.remove('hidden');
   });
 }
@@ -900,6 +944,7 @@ async function handleLogout(): Promise<void> {
   questionScreen.classList.add('hidden');
   resultsScreen.classList.add('hidden');
   cuotiScreen.classList.add('hidden');
+  topBar.classList.add('hidden');
   loginScreen.classList.remove('hidden');
   loginEmailInput.value = '';
   loginPasswordInput.value = '';
@@ -918,6 +963,7 @@ async function initApp(): Promise<void> {
   currentUserId = session.user.id;
   userEmailDisplay.textContent = session.user.email ?? '';
   loginScreen.classList.add('hidden');
+  topBar.classList.remove('hidden');
 
   // Track session resumptions (page refresh with existing session)
   trackLoginEvent(session.user.email ?? '');
@@ -946,7 +992,7 @@ loginPasswordInput.addEventListener('keydown', (e) => {
 logoutBtn.addEventListener('click', () => { void handleLogout(); });
 
 startBtn.addEventListener('click', startQuiz);
-chapterBtn.addEventListener('click', showChapterScreen);
+chapterBtn.addEventListener('click', () => showChapterScreen('practice'));
 backFromChapterBtn.addEventListener('click', () => {
   chapterScreen.classList.add('hidden');
   startScreen.classList.remove('hidden');
@@ -954,12 +1000,23 @@ backFromChapterBtn.addEventListener('click', () => {
 submitBtn.addEventListener('click', checkAnswer);
 nextBtn.addEventListener('click', nextQuestion);
 restartBtn.addEventListener('click', startQuiz);
-cuotiBtn.addEventListener('click', () => showCuotiScreen(null));
+cuotiBtn.addEventListener('click', () => {
+  cuotiSubmenu.classList.toggle('hidden');
+});
+cuotiMoniBtn.addEventListener('click', () => {
+  cuotiSubmenu.classList.add('hidden');
+  showCuotiScreen(null);
+});
+chapterCuotiBtn.addEventListener('click', () => {
+  cuotiSubmenu.classList.add('hidden');
+  showChapterScreen('cuoti');
+});
 cuotiResultsBtn.addEventListener('click', () => showCuotiScreen(currentChapter));
 homeFromQuestionBtn.addEventListener('click', returnToHome);
 
 backToStartBtn.addEventListener('click', () => {
   cuotiScreen.classList.add('hidden');
+  cuotiSubmenu.classList.add('hidden');
   startScreen.classList.remove('hidden');
 });
 
