@@ -978,6 +978,11 @@ async function initApp(): Promise<void> {
   if (!session) {
     loginScreen.classList.remove('hidden');
     startScreen.classList.add('hidden');
+    chapterScreen.classList.add('hidden');
+    questionScreen.classList.add('hidden');
+    resultsScreen.classList.add('hidden');
+    cuotiScreen.classList.add('hidden');
+    topBar.classList.add('hidden');
     return;
   }
 
