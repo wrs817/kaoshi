@@ -62,31 +62,29 @@
 
 <body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
 
-    <!-- Top bar (shown when logged in) -->
-    <div id="top-bar" class="fixed top-0 left-0 right-0 z-40 hidden">
-        <div class="max-w-2xl mx-auto px-4 py-2 flex justify-end items-center gap-3">
-            <div class="flex items-center gap-1.5 text-sm text-gray-500">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-gray-400" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
-                </svg>
-                <span id="user-email-display" class="truncate max-w-[180px]"></span>
-            </div>
-            <button id="logout-btn" class="btn bg-white hover:bg-gray-100 text-gray-600 border border-gray-200 font-semibold py-1 px-3 rounded-lg text-xs shadow-sm">
-                退出登录
-            </button>
-        </div>
-    </div>
     <div id="notification" class="fixed top-5 right-5 text-white py-3 px-6 rounded-lg shadow-xl hidden z-50 transition-all duration-300 transform translate-x-full flex items-center space-x-2">
         <span id="notification-icon" class="text-xl">🔔</span>
         <span id="notification-text"></span>
     </div>
 
-    <div class="w-full max-w-2xl mx-auto pt-10">
+    <div class="w-full max-w-2xl mx-auto">
         <h1 class="text-3xl md:text-4xl font-bold text-center text-gray-800 mb-6">2026政府招标采购考试题库</h1>
-
 
         <!-- Main Container -->
         <div id="quiz-container" class="bg-white rounded-xl shadow-lg overflow-hidden">
+
+            <!-- Top bar (shown when logged in) -->
+            <div id="top-bar" class="hidden border-b border-gray-100 px-6 py-2 flex justify-end items-center gap-3">
+                <div class="flex items-center gap-1.5 text-sm text-gray-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-gray-400" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
+                    </svg>
+                    <span id="user-email-display" class="truncate max-w-[180px]"></span>
+                </div>
+                <button id="logout-btn" class="btn bg-white hover:bg-gray-100 text-gray-600 border border-gray-200 font-semibold py-1 px-3 rounded-lg text-xs shadow-sm">
+                    退出登录
+                </button>
+            </div>
 
             <!-- Login Screen -->
             <div id="login-screen" class="p-8 md:p-12 hidden">
