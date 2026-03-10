@@ -230,6 +230,8 @@ const nextBtn = getElement<HTMLButtonElement>('next-btn');
 const restartBtn = getElement<HTMLButtonElement>('restart-btn');
 const resetStorageBtn = getElement<HTMLButtonElement>('reset-storage-btn');
 const homeFromQuestionBtn = getElement<HTMLButtonElement>('home-from-question-btn');
+const chapterTitleBar = getElement('chapter-title-bar');
+const chapterTitleText = getElement('chapter-title-text');
 
 const cuotiBtn = getElement<HTMLButtonElement>('cuoti-btn');
 const cuotiSubmenu = getElement('cuoti-submenu');
@@ -427,6 +429,7 @@ function startQuiz(): void {
   questionScreen.classList.remove('hidden');
   resultsScreen.classList.add('hidden');
   cuotiScreen.classList.add('hidden');
+  chapterTitleBar.classList.add('hidden');
 
   displayQuestion();
 }
@@ -856,6 +859,8 @@ async function startChapterQuiz(chapter: Chapter): Promise<void> {
 
   resultsScreen.classList.add('hidden');
   cuotiScreen.classList.add('hidden');
+  chapterTitleText.textContent = chapter.title;
+  chapterTitleBar.classList.remove('hidden');
 
   displayQuestion();
 }
@@ -868,6 +873,7 @@ function returnToHome(): void {
     cuotiScreen.classList.add('hidden');
     chapterScreen.classList.add('hidden');
     cuotiSubmenu.classList.add('hidden');
+    chapterTitleBar.classList.add('hidden');
     startScreen.classList.remove('hidden');
   });
 }
