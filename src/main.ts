@@ -13,9 +13,9 @@ import {
 
 function translateQuestionType(chineseType: string): 'single' | 'multiple' | 'true-false' {
   const type = chineseType.trim().replace(/["]/g, '').replace(/\n/g, ' ').trim();
-  if (type.includes('单选题')) return 'single';
-  if (type.includes('多选题')) return 'multiple';
-  if (type.includes('判断题')) return 'true-false';
+  if (type.includes('多选')) return 'multiple';
+  if (type.includes('判断')) return 'true-false';
+  if (type.includes('单选')) return 'single';
   return 'single';
 }
 
