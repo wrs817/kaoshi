@@ -30,7 +30,7 @@ function parseOptions(
     options['A'] = '对';
     options['B'] = '错';
   } else {
-    const optionPattern = /([A-G])[. ]\s*([^A-G]*?)(?=[A-G][. ]|$)/g;
+    const optionPattern = /([A-G])[.．]\s*(.*?)(?=\s+[A-G][.．]\s|$)/g;
     let match: RegExpExecArray | null;
     while ((match = optionPattern.exec(cleanOptions)) !== null) {
       const letter = match[1];
@@ -237,6 +237,7 @@ const cuotiMoniBtn = getElement<HTMLButtonElement>('cuoti-moni-btn');
 const chapterCuotiBtn = getElement<HTMLButtonElement>('chapter-cuoti-btn');
 const cuotiResultsBtn = getElement<HTMLButtonElement>('cuoti-results-btn');
 const backToStartBtn = getElement<HTMLButtonElement>('back-to-start-btn');
+const resultsTitleEl = getElement('results-title');
 
 const progressText = getElement('progress-text');
 const scoreText = getElement('score-text');
@@ -527,8 +528,8 @@ function checkAnswer(): void {
 
   if (isCorrect) {
     const points = currentQuestion.type === 'multiple' ? 2 : 1;
-    score += points;
-    feedbackContainer.textContent = `正确！得分：${points}分`;
+    if (!currentChapter) score += points;
+    feedbackContainer.textContent = currentChapter ? '正确！' : `正确！得分：${points}分`;
     feedbackContainer.className = 'mt-6 p-4 rounded-lg text-center bg-green-100 text-green-800';
     currentQuestion._answeredCorrect = true;
 
@@ -602,26 +603,44 @@ function showResults(): void {
   resultsScreen.classList.remove('hidden');
 
   if (currentChapter) {
-    const total = testQuestions.length;
-    const correct = testQuestions.filter((q) => q._answeredCorrect).length;
-    const wrong = total - correct;
+    const singles = testQuestions.filter((q) => q.type === 'single');
+    const multiples = testQuestions.filter((q) => q.type === 'multiple');
+    const trueFalses = testQuestions.filter((q) => q.type === 'true-false');
+
+    const wrongSingles = singles.filter((q) => !q._answeredCorrect).length;
+    const wrongMultiples = multiples.filter((q) => !q._answeredCorrect).length;
+    const wrongTrueFalses = trueFalses.filter((q) => !q._answeredCorrect).length;
+    const totalWrong = wrongSingles + wrongMultiples + wrongTrueFalses;
+
+    const rows = [
+      singles.length > 0 ? `<div class="bg-blue-50 text-blue-800 p-3 rounded-lg"><div class="font-bold">单选题</div><div>答错 ${wrongSingles} / ${singles.length} 题</div></div>` : '',
+      multiples.length > 0 ? `<div class="bg-green-50 text-green-800 p-3 rounded-lg"><div class="font-bold">多选题</div><div>答错 ${wrongMultiples} / ${multiples.length} 题</div></div>` : '',
+      trueFalses.length > 0 ? `<div class="bg-purple-50 text-purple-800 p-3 rounded-lg"><div class="font-bold">判断题</div><div>答错 ${wrongTrueFalses} / ${trueFalses.length} 题</div></div>` : '',
+    ].filter(Boolean).join('');
+
     finalScoreEl.innerHTML = `
-      <div class="text-4xl font-bold text-indigo-500 my-4">${currentChapter.title}</div>
-      <div class="text-5xl font-bold text-blue-500 my-2">${correct} / ${total}</div>
-      <div class="grid grid-cols-2 gap-3 my-4 text-sm">
-        <div class="bg-green-100 text-green-800 p-3 rounded-lg"><div class="font-bold">答对</div><div>${correct} 题</div></div>
-        <div class="bg-red-100 text-red-800 p-3 rounded-lg"><div class="font-bold">答错</div><div>${wrong} 题</div></div>
-      </div>`;
-    const pct = total > 0 ? (correct / total) * 100 : 0;
+      <div class="text-2xl font-bold text-indigo-500 my-3">${currentChapter.title}</div>
+      <div class="grid grid-cols-1 gap-3 my-4 text-sm">${rows}</div>`;
+
     resultMessageEl.textContent =
-      pct >= 90 ? '太棒了！掌握得很好！' :
-      pct >= 70 ? '不错！继续加油！' :
+      totalWrong === 0 ? '全对！太棒了！' :
+      totalWrong <= 3 ? '不错！继续加油！' :
       '还需多加练习，加油！';
-    // Show/hide the "查看错题" button based on whether there are wrong answers
-    cuotiResultsBtn.classList.toggle('hidden', wrong === 0);
+
+    // Show "查看错题" only if there are wrong answers
+    cuotiResultsBtn.classList.toggle('hidden', totalWrong === 0);
+    restartBtn.textContent = '返回章节';
+    restartBtn.className = 'btn bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-8 rounded-lg';
+    resultsTitleEl.textContent = '章节练习完成！';
     void saveAllProgress(currentUserId, userProgressCache);
     return;
   }
+
+  // Restore mock-test button state
+  restartBtn.textContent = '再试一次';
+  restartBtn.className = 'btn bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-lg';
+  cuotiResultsBtn.classList.add('hidden');
+  resultsTitleEl.textContent = '测试完成！';
 
   const wrongAnsweredQuestions = testQuestions.filter(
     (q) => q.practiced_count > 1 && q.wrong_count > 0
@@ -681,6 +700,10 @@ function showResults(): void {
             : '别灰心，老爸再多练习一下吧！';
 
   resultMessageEl.textContent = message;
+
+  // Show "查看错题" for mock test too (always — errors are expected)
+  const totalWrongMock = wrongSingleCount + wrongMultipleCount + wrongTrueFalseCount;
+  cuotiResultsBtn.classList.toggle('hidden', totalWrongMock === 0);
 
   // Persist all session progress to Supabase as a single blob
   void saveAllProgress(currentUserId, userProgressCache);
@@ -823,7 +846,6 @@ async function startChapterQuiz(chapter: Chapter): Promise<void> {
   }
 
   testQuestions = getEnrichedQuestions(rawQuestions, chapter.id);
-  shuffleArray(testQuestions);
 
   maxPossibleScore = testQuestions.reduce(
     (total, q) => total + (q.type === 'multiple' ? 2 : 1),
@@ -999,7 +1021,14 @@ backFromChapterBtn.addEventListener('click', () => {
 });
 submitBtn.addEventListener('click', checkAnswer);
 nextBtn.addEventListener('click', nextQuestion);
-restartBtn.addEventListener('click', startQuiz);
+restartBtn.addEventListener('click', () => {
+  if (currentChapter) {
+    resultsScreen.classList.add('hidden');
+    showChapterScreen('practice');
+  } else {
+    startQuiz();
+  }
+});
 cuotiBtn.addEventListener('click', () => {
   cuotiSubmenu.classList.toggle('hidden');
 });
