@@ -181,12 +181,14 @@
                     <button id="submit-btn" class="btn w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg">
                         提交答案
                     </button>
-                    <button id="next-btn" class="btn w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg hidden">
-                        下一题 →
-                    </button>
-                    <button id="prev-btn" class="btn w-full bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-3 px-6 rounded-lg hidden">
-                        ← 上一题
-                    </button>
+                    <div class="flex gap-3">
+                        <button id="prev-btn" class="btn flex-1 bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-6 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none">
+                            ← 上一题
+                        </button>
+                        <button id="next-btn" class="btn flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none">
+                            下一题 →
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Feedback Info -->

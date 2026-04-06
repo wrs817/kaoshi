@@ -460,15 +460,17 @@ function updatePracticedCount(question: Question): void {
 function displayQuestion(): void {
   feedbackContainer.classList.add('hidden');
   submitBtn.classList.remove('hidden');
-  nextBtn.classList.add('hidden');
   submitBtn.disabled = false;
 
-  // Show/hide previous button
-  if (currentQuestionIndex > 0) {
-    prevBtn.classList.remove('hidden');
-  } else {
-    prevBtn.classList.add('hidden');
-  }
+  // Prev button: disable on first question, always visible
+  prevBtn.classList.remove('hidden');
+  prevBtn.disabled = currentQuestionIndex <= 0;
+
+  // Next button: always visible and enabled; label changes on last question
+  nextBtn.classList.remove('hidden');
+  nextBtn.disabled = false;
+  nextBtn.textContent =
+    currentQuestionIndex < testQuestions.length - 1 ? '下一题 →' : '查看结果';
 
   if (testQuestions.length === 0 || currentQuestionIndex >= testQuestions.length) {
     showResults();
@@ -545,7 +547,6 @@ function displayQuestion(): void {
 
     submitBtn.classList.add('hidden');
     submitBtn.disabled = true;
-    nextBtn.classList.remove('hidden');
   }
 }
 
@@ -611,7 +612,6 @@ function checkAnswer(): void {
   feedbackContainer.classList.remove('hidden');
   if (!currentChapter) scoreText.textContent = `得分: ${score}`;
   submitBtn.classList.add('hidden');
-  nextBtn.classList.remove('hidden');
   submitBtn.disabled = true;
 
   // Persist answer state so the user can navigate back
@@ -632,22 +632,25 @@ function updateWrongCount(question: Question): void {
 function nextQuestion(): void {
   const previousQuestion = testQuestions[currentQuestionIndex];
   const previousType = previousQuestion?.type;
+
+  // If on the last question, go to results
+  if (currentQuestionIndex >= testQuestions.length - 1) {
+    showResults();
+    return;
+  }
+
   currentQuestionIndex++;
 
-  if (currentQuestionIndex < testQuestions.length) {
-    const currentType = testQuestions[currentQuestionIndex]?.type;
-    if (currentType && currentType !== previousType && !currentChapter) {
-      const sectionName: Record<Question['type'], string> = {
-        single: '单选题',
-        multiple: '多选题',
-        'true-false': '判断题',
-      };
-      showNotification(`进入${sectionName[currentType]}部分`, false);
-    }
-    displayQuestion();
-  } else {
-    showResults();
+  const currentType = testQuestions[currentQuestionIndex]?.type;
+  if (currentType && currentType !== previousType && !currentChapter) {
+    const sectionName: Record<Question['type'], string> = {
+      single: '单选题',
+      multiple: '多选题',
+      'true-false': '判断题',
+    };
+    showNotification(`进入${sectionName[currentType]}部分`, false);
   }
+  displayQuestion();
 }
 
 function prevQuestion(): void {
