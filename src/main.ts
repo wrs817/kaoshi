@@ -227,6 +227,7 @@ const chapterBtn = getElement<HTMLButtonElement>('chapter-btn');
 const backFromChapterBtn = getElement<HTMLButtonElement>('back-from-chapter-btn');
 const submitBtn = getElement<HTMLButtonElement>('submit-btn');
 const nextBtn = getElement<HTMLButtonElement>('next-btn');
+const prevBtn = getElement<HTMLButtonElement>('prev-btn');
 const restartBtn = getElement<HTMLButtonElement>('restart-btn');
 const resetStorageBtn = getElement<HTMLButtonElement>('reset-storage-btn');
 const homeFromQuestionBtn = getElement<HTMLButtonElement>('home-from-question-btn');
@@ -268,6 +269,13 @@ let score = 0;
 const TOTAL_QUESTIONS = 80;
 let maxPossibleScore = 0;
 let confirmCallback: (() => void) | null = null;
+
+// Stores the submitted answer state for each question index so the user can navigate back
+interface AnsweredState {
+  selectedAnswers: string[];
+  isCorrect: boolean;
+}
+const questionAnswerStates = new Map<number, AnsweredState>();
 
 // --- Modal and Notification Functions ---
 
@@ -431,6 +439,7 @@ function startQuiz(): void {
   cuotiScreen.classList.add('hidden');
   chapterTitleBar.classList.add('hidden');
 
+  questionAnswerStates.clear();
   displayQuestion();
 }
 
@@ -453,6 +462,13 @@ function displayQuestion(): void {
   submitBtn.classList.remove('hidden');
   nextBtn.classList.add('hidden');
   submitBtn.disabled = false;
+
+  // Show/hide previous button
+  if (currentQuestionIndex > 0) {
+    prevBtn.classList.remove('hidden');
+  } else {
+    prevBtn.classList.add('hidden');
+  }
 
   if (testQuestions.length === 0 || currentQuestionIndex >= testQuestions.length) {
     showResults();
@@ -500,6 +516,36 @@ function displayQuestion(): void {
       <span class="ml-3 text-gray-700">${key}. ${currentQuestion.options[key]}</span>
     `;
     optionsContainer.appendChild(optionElement);
+  }
+
+  // Restore previously answered state (read-only)
+  const answered = questionAnswerStates.get(currentQuestionIndex);
+  if (answered) {
+    const inputs = optionsContainer.querySelectorAll<HTMLInputElement>('input');
+    const correctAnswerArray = currentQuestion.answer.split('');
+    inputs.forEach((input) => {
+      input.disabled = true;
+      if (answered.selectedAnswers.includes(input.value)) {
+        input.checked = true;
+      }
+      const label = input.parentElement;
+      if (!label) return;
+      if (correctAnswerArray.includes(input.value)) {
+        label.classList.add('correct-answer');
+      } else if (answered.selectedAnswers.includes(input.value)) {
+        label.classList.add('incorrect-answer');
+      }
+    });
+
+    feedbackContainer.textContent = answered.isCorrect
+      ? (currentChapter ? '正确！' : `正确！得分：${currentQuestion.type === 'multiple' ? 2 : 1}分`)
+      : `错误。正确答案是 ${currentQuestion.answer}`;
+    feedbackContainer.className = `mt-6 p-4 rounded-lg text-center ${answered.isCorrect ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`;
+    feedbackContainer.classList.remove('hidden');
+
+    submitBtn.classList.add('hidden');
+    submitBtn.disabled = true;
+    nextBtn.classList.remove('hidden');
   }
 }
 
@@ -567,6 +613,9 @@ function checkAnswer(): void {
   submitBtn.classList.add('hidden');
   nextBtn.classList.remove('hidden');
   submitBtn.disabled = true;
+
+  // Persist answer state so the user can navigate back
+  questionAnswerStates.set(currentQuestionIndex, { selectedAnswers, isCorrect });
 }
 
 function updateWrongCount(question: Question): void {
@@ -598,6 +647,13 @@ function nextQuestion(): void {
     displayQuestion();
   } else {
     showResults();
+  }
+}
+
+function prevQuestion(): void {
+  if (currentQuestionIndex > 0) {
+    currentQuestionIndex--;
+    displayQuestion();
   }
 }
 
@@ -862,6 +918,7 @@ async function startChapterQuiz(chapter: Chapter): Promise<void> {
   chapterTitleText.textContent = chapter.title;
   chapterTitleBar.classList.remove('hidden');
 
+  questionAnswerStates.clear();
   displayQuestion();
 }
 
@@ -1032,6 +1089,7 @@ backFromChapterBtn.addEventListener('click', () => {
 });
 submitBtn.addEventListener('click', checkAnswer);
 nextBtn.addEventListener('click', nextQuestion);
+prevBtn.addEventListener('click', prevQuestion);
 restartBtn.addEventListener('click', () => {
   if (currentChapter) {
     resultsScreen.classList.add('hidden');
